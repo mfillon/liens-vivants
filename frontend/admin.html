@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mental Map — Admin</title>
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Admin — Mental Map</h1>
+
+    <div id="authForm" class="auth-form">
+      <h2>Login</h2>
+      <div class="field">
+        <label for="adminUser">Username</label>
+        <input type="text" id="adminUser" autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="adminPass">Password</label>
+        <input type="password" id="adminPass" autocomplete="current-password">
+      </div>
+      <button id="loginBtn">Login</button>
+      <div id="authError" class="message error hidden"></div>
+    </div>
+
+    <div id="dashboard" class="hidden">
+
+      <!-- Create Project -->
+      <section class="section">
+        <h2>Create New Project</h2>
+        <form id="projectForm">
+          <div class="field">
+            <label for="centerLabel">Main question / center node label <span class="required">*</span></label>
+            <input type="text" id="centerLabel" placeholder="e.g. What motivates you at work?" required>
+          </div>
+          <fieldset>
+            <legend>Branch labels (up to 5)</legend>
+            <div class="field">
+              <label for="bl1">Branch 1</label>
+              <input type="text" id="bl1" placeholder="e.g. What energizes you?">
+            </div>
+            <div class="field">
+              <label for="bl2">Branch 2</label>
+              <input type="text" id="bl2" placeholder="e.g. What drains you?">
+            </div>
+            <div class="field">
+              <label for="bl3">Branch 3</label>
+              <input type="text" id="bl3" placeholder="e.g. What would you change?">
+            </div>
+            <div class="field">
+              <label for="bl4">Branch 4</label>
+              <input type="text" id="bl4">
+            </div>
+            <div class="field">
+              <label for="bl5">Branch 5</label>
+              <input type="text" id="bl5">
+            </div>
+          </fieldset>
+          <button type="submit">Create Project &amp; Generate Link</button>
+        </form>
+        <div id="newLinkBox" class="link-box hidden">
+          <p>Shareable link:</p>
+          <div class="link-row">
+            <a id="newLink" href="#" target="_blank"></a>
+            <button class="copy-btn" onclick="copyLink('newLink')">Copy</button>
+          </div>
+        </div>
+        <div id="projectError" class="message error hidden"></div>
+      </section>
+
+      <!-- Projects list -->
+      <section class="section">
+        <h2>Projects</h2>
+        <div id="projectList"><p class="empty">Loading…</p></div>
+      </section>
+
+      <!-- Tools -->
+      <section class="section">
+        <h2>Tools</h2>
+        <p style="font-size:0.875rem;color:#666;margin-bottom:14px">
+          Recompute connections if you changed keyword logic or imported data manually.
+        </p>
+        <button id="recomputeBtn" class="secondary-btn">Recompute all connections</button>
+        <div id="recomputeMsg" class="message hidden"></div>
+      </section>
+
+    </div>
+  </div>
+
+  <script type="module" src="/src/admin.js"></script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '../../.env') });
 const express = require('express');
 const path = require('path');
 const { createProject, getProjectByUUID, getAllProjects, createNode, getAllNodes, getNodesByProject, getConnectionsByProject, recomputeAllConnections } = require('./db');
@@ -105,17 +105,13 @@ app.post('/api/admin/recompute-connections', basicAuth, (req, res) => {
   return res.json({ ok: true });
 });
 
-// Serve submission form for UUID links
-app.get('/submit/:uuid', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// Serve graph visualization
-app.get('/graph/:uuid', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'graph.html'));
-});
-
-app.use(express.static(path.join(__dirname, 'public')));
+// In production, serve the built frontend and handle client-side routes
+if (process.env.NODE_ENV === 'production') {
+  const distDir = path.join(__dirname, '../../frontend/dist');
+  app.use(express.static(distDir));
+  app.get('/submit/:uuid', (_req, res) => res.sendFile(path.join(distDir, 'submit.html')));
+  app.get('/graph/:uuid', (_req, res) => res.sendFile(path.join(distDir, 'graph.html')));
+}
 
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);

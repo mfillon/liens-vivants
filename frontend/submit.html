@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mental Map — Submit</title>
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <div class="container">
+    <div id="invalidLink" class="message error hidden">Invalid link. Please use the link provided by the organizer.</div>
+    <div id="notFound" class="message error hidden">Link not found or expired. Please contact the organizer.</div>
+
+    <div id="formSection" class="hidden">
+      <h1 id="pageTitle">Submit a Mental Map Node</h1>
+      <form id="nodeForm">
+        <div class="field">
+          <label id="centerLabel" for="centerText">Your answer <span class="required">*</span></label>
+          <textarea id="centerText" name="center_text" rows="3" required></textarea>
+        </div>
+
+        <fieldset id="branchesFieldset">
+          <legend>Branches</legend>
+        </fieldset>
+
+        <button type="submit">Submit</button>
+      </form>
+
+      <div id="message" class="message hidden"></div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/submit.js"></script>
+</body>
+</html>

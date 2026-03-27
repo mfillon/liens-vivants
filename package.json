@@ -1,14 +1,13 @@
 {
-  "name": "mental-map-connections",
+  "name": "liens-vivants",
   "version": "1.0.0",
-  "description": "A webapp for submitting and viewing mental map nodes",
-  "license": "GPL-3.0-only",
-  "main": "server.js",
+  "private": true,
   "scripts": {
-    "start": "node --experimental-sqlite server.js"
+    "dev": "concurrently \"pnpm --dir backend dev\" \"pnpm --dir frontend dev\"",
+    "build": "pnpm --dir frontend build",
+    "start": "pnpm --dir backend start"
   },
-  "dependencies": {
-    "dotenv": "^16.4.5",
-    "express": "^4.18.3"
+  "devDependencies": {
+    "concurrently": "^9.0.0"
   }
 }
