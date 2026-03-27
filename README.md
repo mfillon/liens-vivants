@@ -11,7 +11,7 @@ A web app for collaborative mental mapping. Admins create projects with structur
 1. **Admin creates a project** — defines a central question and up to 5 branch questions, generating a unique shareable link.
 2. **Participants submit responses** — via the private UUID link, they answer the central question and each branch.
 3. **Connections form automatically** — on submission, branch answers are tokenized and compared across all responses. Nodes that share meaningful keywords are linked.
-4. **Explore the graph** — the admin (or anyone with the graph link) can view an interactive 2D force-directed graph. Click a node to see its answers, click a connection to compare both sides, click the central hub to see isolated responses.
+4. **Explore the graph** — the admin (or anyone with the graph link) can view an interactive 2D force-directed graph. Click a node to see its answers, click a connection to compare both sides, click a hub line to see a single unconnected response.
 
 ---
 
@@ -19,8 +19,8 @@ A web app for collaborative mental mapping. Admins create projects with structur
 
 - **Projects**: each project has a custom center label + up to 5 branch labels, and a UUID-gated submission link
 - **Autolink**: keyword extraction (EN + FR stop-word filtering) connects nodes at submission time; recompute available from admin panel
-- **Interactive graph**: D3.js force-directed visualization with zoom, pan, drag, node inspection, and connection inspection
-- **Hub node**: unconnected responses anchor to a central hub so nothing floats off-screen; hub connections are dashed and visually distinct
+- **Interactive graph**: D3.js force-directed visualization with zoom, pan, drag; click nodes, connections, or hub lines to inspect answers in the sidebar; wide invisible hit areas make thin lines easy to click
+- **Hub node**: central orange node anchors all responses via dashed lines; all nodes connect to it so nothing drifts off-screen; keyword connections are solid and draw on top
 - **Admin dashboard**: create projects, copy links, view submissions per project, trigger connection recompute, open graph
 
 ---
