@@ -44,6 +44,12 @@ A webapp where users submit mental map nodes (center concept + branches), data i
 - [x] Nodes = center concepts, edges = shared keyword connections
 - [x] Zoom + pan; drag nodes
 - [x] Click node → sidebar shows branches
+- [x] Click connection → sidebar shows both answers + shared keyword tags
+- [x] Click hub line → sidebar shows single node answer
+- [x] Hub node (fixed center, orange) anchors all nodes via dashed lines
+- [x] Hub lines drawn manually (bypass D3 forceLink ID resolution)
+- [x] All connections + hub lines have 28px invisible hit-area for easy clicking
+- [x] Hub text white (readable on both orange circle and dark background)
 - [x] "View graph →" link in admin project cards
 - [x] `/graph/:uuid` Express route
 

@@ -70,6 +70,36 @@ Context and decisions for future AI-assisted sessions on this project.
 
 ---
 
+## Session 4 — 2026-03-27
+
+**Goal:** Graph UX polish — hub connections, clickable lines, hub text legibility.
+
+**Completed:**
+- Hub links now drawn manually (separate `hubLinkSel`/`hubLinkHitSel` from `nodes` data, positions updated directly from `d.x`/`d.y` in tick) — bypasses D3 forceLink ID resolution which was silently failing
+- All nodes connect to hub (not just isolated ones — eliminates type-comparison bug entirely)
+- Click on connection line → sidebar shows both nodes' full answers + shared keyword tags
+- Click on hub dashed line → sidebar shows single node answer
+- Click hub node → shows project question + branch labels
+- Clear selection on empty canvas click
+- 28px invisible hit-area lines (`link-hit`, `hub-link-hit`) over both real and hub lines
+- Visual lines have `pointer-events: none`; only hit-area lines capture clicks
+- Hub text changed from `#111` to `#fff` — visible on orange circle and dark background overflow
+- README fully rewritten to reflect current feature set
+- FR stop words expanded (~80 entries)
+- `computeConnections` uses branch texts only (not center text) to avoid false connections
+- Admin panel: "Recompute all connections" button + `POST /api/admin/recompute-connections`
+- `.hidden { display: none !important }` fix for submissions toggle
+
+**Key technical decisions:**
+- Hub links kept out of D3 forceLink entirely — draw manually in tick using node object refs
+- Use `nodes` (all) for hub links, not `isolatedNodes` — avoids fragile type comparison of IDs
+
+**State at end of session:**
+- Graph fully interactive: click nodes, connections, hub lines, hub node
+- Ready for Step 4 (3D) or Step 5 (media attachments)
+
+---
+
 ## How to Resume
 
 1. Read `.claude/PLAN.md` for the full roadmap and step status.

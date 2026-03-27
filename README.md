@@ -1,90 +1,117 @@
-# Mental Map Connections
+# Liens Vivants
 
 ![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)
 
-A web app for submitting and exploring mental map nodes — a central concept linked to up to 5 related branches. Built to grow incrementally toward a 3D interactive knowledge graph.
+A web app for collaborative mental mapping. Admins create projects with structured questions, share unique links with participants, and explore collective responses as an interactive force-directed graph — with connections automatically drawn between nodes that share keywords.
 
 ---
 
-## Functional Description
+## How it works
 
-- **Users** submit a mental map node: a central concept + up to 5 branch ideas.
-- **Admins** view all submitted nodes in a protected interface, with branch details and timestamps.
-- Future steps will add media attachments per branch, 2D/3D graph visualization, and automatic cross-node linking by keyword.
+1. **Admin creates a project** — defines a central question and up to 5 branch questions, generating a unique shareable link.
+2. **Participants submit responses** — via the private UUID link, they answer the central question and each branch.
+3. **Connections form automatically** — on submission, branch answers are tokenized and compared across all responses. Nodes that share meaningful keywords are linked.
+4. **Explore the graph** — the admin (or anyone with the graph link) can view an interactive 2D force-directed graph. Click a node to see its answers, click a connection to compare both sides, click the central hub to see isolated responses.
 
 ---
 
-## Technical Description
+## Features
+
+- **Projects**: each project has a custom center label + up to 5 branch labels, and a UUID-gated submission link
+- **Autolink**: keyword extraction (EN + FR stop-word filtering) connects nodes at submission time; recompute available from admin panel
+- **Interactive graph**: D3.js force-directed visualization with zoom, pan, drag, node inspection, and connection inspection
+- **Hub node**: unconnected responses anchor to a central hub so nothing floats off-screen; hub connections are dashed and visually distinct
+- **Admin dashboard**: create projects, copy links, view submissions per project, trigger connection recompute, open graph
+
+---
+
+## Technical stack
 
 | Layer | Technology |
 |-------|-----------|
 | Server | Node.js + Express |
 | Database | SQLite via built-in `node:sqlite` (Node 22.5+) |
-| Frontend | Vanilla HTML/CSS/JS (no framework) |
-| Auth | HTTP Basic Auth (middleware on admin routes) |
+| Frontend | Vanilla HTML/CSS/JS — no framework, no build step |
+| Graph | D3.js v7 (CDN) |
+| Auth | HTTP Basic Auth on all admin routes |
 | Config | `.env` via `dotenv` |
 
 **Data model:**
-- `nodes` — one row per submission (`id`, `center_text`, `created_at`)
-- `branches` — up to 5 rows per node (`node_id`, `position`, `text`)
+
+| Table | Description |
+|-------|-------------|
+| `projects` | One per admin session — uuid, center_label |
+| `project_branch_labels` | Up to 5 labels per project |
+| `nodes` | One per participant submission |
+| `branches` | Up to 5 branch answers per node |
+| `connections` | Auto-computed keyword overlaps between nodes |
 
 **API:**
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | `/api/nodes` | none | Create a node + branches |
+| POST | `/api/projects` | Basic | Create a project |
+| GET | `/api/projects` | Basic | List all projects |
+| GET | `/api/projects/:uuid` | — | Get project labels (for form) |
+| GET | `/api/projects/:uuid/nodes` | — | Get all nodes for a project |
+| GET | `/api/projects/:uuid/connections` | — | Get keyword connections |
+| POST | `/api/nodes` | — | Submit a node (requires `project_uuid`) |
 | GET | `/api/nodes` | Basic | List all nodes with branches |
+| POST | `/api/admin/recompute-connections` | Basic | Recompute all connections |
 
 ---
 
-## Getting Started
+## Getting started
 
-**Prerequisites:** Node.js 22.5 or later (uses built-in `node:sqlite`)
+**Requires Node.js 22.5+** (uses built-in `node:sqlite`)
 
 ```bash
 # 1. Install dependencies
 npm install
 
-# 2. Create your local config from the template
+# 2. Create your local config
 cp .env.example .env
+# Edit .env — set ADMIN_USER and ADMIN_PASS before running
 
-# 3. Edit .env and change the default credentials before running
-# ADMIN_USER and ADMIN_PASS must be set to something secret
-
-# 4. Start the server
+# 3. Start the server
 npm start
 ```
 
-> **Note:** On startup you will see `ExperimentalWarning: SQLite is an experimental feature`. This is expected — `node:sqlite` is built into Node 22.5+ but still flagged experimental. It works reliably for this use case.
+> You will see `ExperimentalWarning: SQLite is an experimental feature` on startup. This is expected and harmless.
 
-- User form: http://localhost:3000
-- Admin view: http://localhost:3000/admin.html
+| URL | Description |
+|-----|-------------|
+| `http://localhost:3000/admin.html` | Admin dashboard |
+| `http://localhost:3000/submit/<uuid>` | Participant submission form |
+| `http://localhost:3000/graph/<uuid>` | Interactive graph for a project |
 
-> **Warning:** Do not expose this app to the internet without changing the default credentials in `.env` and adding HTTPS. HTTP Basic Auth sends credentials in base64, which is not encrypted.
+> **Security note:** HTTP Basic Auth sends credentials in base64 (not encrypted). Do not expose this app to the internet without HTTPS.
 
 **Inspect the database:**
 ```bash
-sqlite3 data.db "SELECT * FROM nodes;"
-sqlite3 data.db "SELECT * FROM branches;"
+sqlite3 data.db "SELECT * FROM projects;"
+sqlite3 data.db "SELECT * FROM connections;"
 ```
 
 ---
 
-## Project Structure
+## Project structure
 
 ```
-mental-map-connections/
+liens-vivants/
 ├── server.js          # Express app, routes, Basic Auth middleware
-├── db.js              # SQLite setup and query functions
+├── db.js              # SQLite schema, queries, autolink logic
+├── keywords.js        # Keyword extraction + EN/FR stop-word list
 ├── public/
-│   ├── index.html     # User-facing submission form
-│   ├── admin.html     # Admin node list
+│   ├── index.html     # Participant submission form (UUID-gated)
+│   ├── admin.html     # Admin dashboard
+│   ├── graph.html     # D3 force-directed graph
 │   └── style.css
 ├── .claude/
-│   ├── PLAN.md        # Incremental implementation plan (with checkboxes)
+│   ├── PLAN.md        # Incremental implementation roadmap
 │   └── SESSIONS.md    # Per-session notes for AI-assisted work
 ├── .env               # ADMIN_USER, ADMIN_PASS, PORT (git-ignored)
-├── .env.example       # Template for .env
+├── .env.example       # Config template
 ├── LICENSE            # GNU GPL v3
 └── package.json
 ```
@@ -93,5 +120,4 @@ mental-map-connections/
 
 ## License
 
-This project is licensed under the [GNU General Public License v3.0](LICENSE).
-Derivatives must also be distributed under GPL v3.
+[GNU General Public License v3.0](LICENSE) — derivatives must also be GPL v3.
