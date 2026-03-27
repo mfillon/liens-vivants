@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mental Map — Graph</title>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f1117;
+      color: #e0e0e0;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #graph-container {
+      flex: 1;
+      position: relative;
+    }
+
+    svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .node circle {
+      fill: #4a90e2;
+      stroke: #fff;
+      stroke-width: 1.5px;
+      cursor: pointer;
+      transition: fill 0.15s;
+    }
+
+    .node circle:hover, .node.selected circle {
+      fill: #f5a623;
+    }
+
+    .node text {
+      font-size: 12px;
+      fill: #e0e0e0;
+      pointer-events: none;
+      text-anchor: middle;
+      dominant-baseline: central;
+    }
+
+    .link {
+      stroke: #4a90e2;
+      stroke-opacity: 0.4;
+      stroke-width: 1.5px;
+    }
+
+    .link-label {
+      font-size: 10px;
+      fill: #aaa;
+      pointer-events: none;
+    }
+
+    #sidebar {
+      width: 300px;
+      background: #1a1d27;
+      border-left: 1px solid #2a2d3a;
+      padding: 24px 20px;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    #sidebar h1 {
+      font-size: 1rem;
+      color: #aaa;
+      margin-bottom: 20px;
+      font-weight: 400;
+    }
+
+    #sidebar h2 {
+      font-size: 1rem;
+      color: #fff;
+      margin-bottom: 12px;
+    }
+
+    #node-detail .center {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #f5a623;
+      margin-bottom: 12px;
+    }
+
+    #node-detail ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    #node-detail li {
+      padding: 6px 10px;
+      background: #2a2d3a;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      color: #ccc;
+    }
+
+    #node-detail .position {
+      font-weight: 600;
+      color: #4a90e2;
+      margin-right: 4px;
+    }
+
+    .empty {
+      color: #666;
+      font-size: 0.9rem;
+      font-style: italic;
+    }
+
+    .stats {
+      font-size: 0.8rem;
+      color: #666;
+      margin-bottom: 20px;
+    }
+
+    #error {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #f56565;
+      font-size: 1.1rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div id="graph-container">
+    <svg id="svg"></svg>
+    <div id="error" style="display:none"></div>
+  </div>
+  <div id="sidebar">
+    <h1 id="project-title">Loading…</h1>
+    <p class="stats" id="stats"></p>
+    <h2>Click a node to explore</h2>
+    <div id="node-detail"></div>
+  </div>
+
+  <script>
+    const pathParts = window.location.pathname.split('/');
+    const uuid = pathParts[pathParts.indexOf('graph') + 1];
+
+    if (!uuid) {
+      showError('No project UUID in URL.');
+    } else {
+      loadGraph(uuid);
+    }
+
+    async function loadGraph(uuid) {
+      try {
+        const [projectRes, nodesRes, connectionsRes] = await Promise.all([
+          fetch(`/api/projects/${uuid}`),
+          fetch(`/api/projects/${uuid}/nodes`),
+          fetch(`/api/projects/${uuid}/connections`),
+        ]);
+
+        if (!projectRes.ok) { showError('Project not found.'); return; }
+
+        const project = await projectRes.json();
+        const nodes = await nodesRes.json();
+        const connections = await connectionsRes.json();
+
+        document.getElementById('project-title').textContent = project.center_label;
+
+        const connectedIds = new Set(connections.flatMap(c => [c.node_id_a, c.node_id_b]));
+        const isolatedCount = nodes.filter(n => !connectedIds.has(n.id)).length;
+        document.getElementById('stats').textContent =
+          `${nodes.length} node${nodes.length !== 1 ? 's' : ''} · ` +
+          `${connections.length} connection${connections.length !== 1 ? 's' : ''} · ` +
+          `${isolatedCount} unlinked`;
+
+        renderGraph(project, nodes, connections);
+      } catch (err) {
+        showError('Failed to load graph data.');
+      }
+    }
+
+    function renderGraph(project, nodes, connections) {
+      const svg = d3.select('#svg');
+      const container = document.getElementById('graph-container');
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+
+      svg.attr('viewBox', [0, 0, width, height]);
+
+      // Zoom + pan
+      const g = svg.append('g');
+      svg.call(d3.zoom().scaleExtent([0.2, 4]).on('zoom', e => g.attr('transform', e.transform)));
+
+      if (nodes.length === 0) {
+        svg.append('text')
+          .attr('x', width / 2).attr('y', height / 2)
+          .attr('text-anchor', 'middle').attr('fill', '#666')
+          .text('No nodes submitted yet.');
+        return;
+      }
+
+      // Real keyword links
+      const realLinks = connections.map(c => ({
+        source: c.node_id_a,
+        target: c.node_id_b,
+        keywords: c.shared_keywords,
+        hub: false,
+      }));
+
+      // Hub node: anchor isolated nodes so they don't drift off
+      const HUB_ID = '__hub__';
+      const connectedIds = new Set(connections.flatMap(c => [c.node_id_a, c.node_id_b]));
+      const isolatedNodes = nodes.filter(n => !connectedIds.has(n.id));
+
+      const hubNode = {
+        id: HUB_ID,
+        center_text: project.center_label,
+        branches: project.branch_labels.map(bl => ({ position: bl.position, text: bl.label })),
+        _isHub: true,
+        fx: width / 2,
+        fy: height / 2,
+      };
+
+      const hubLinks = isolatedNodes.map(n => ({
+        source: n.id,
+        target: HUB_ID,
+        keywords: [],
+        hub: true,
+      }));
+
+      const allNodes = [...nodes, hubNode];
+      const allLinks = [...realLinks, ...hubLinks];
+
+      const simulation = d3.forceSimulation(allNodes)
+        .force('link', d3.forceLink(allLinks).id(d => d.id).distance(d => d.hub ? 160 : 120))
+        .force('charge', d3.forceManyBody().strength(-300))
+        .force('center', d3.forceCenter(width / 2, height / 2))
+        .force('collision', d3.forceCollide(44));
+
+      // Links — real ones solid, hub ones dashed
+      const link = g.append('g').selectAll('line')
+        .data(allLinks).join('line')
+        .attr('class', 'link')
+        .style('stroke-dasharray', d => d.hub ? '5,4' : null)
+        .style('stroke-opacity', d => d.hub ? 0.2 : 0.4);
+
+      // Labels only on real links
+      const linkLabel = g.append('g').selectAll('text')
+        .data(realLinks).join('text')
+        .attr('class', 'link-label')
+        .text(d => d.keywords.slice(0, 2).join(', '));
+
+      // Nodes
+      const node = g.append('g').selectAll('g')
+        .data(allNodes).join('g')
+        .attr('class', 'node')
+        .call(d3.drag()
+          .on('start', (e, d) => { if (!e.active) simulation.alphaTarget(0.3).restart(); if (!d._isHub) { d.fx = d.x; d.fy = d.y; } })
+          .on('drag', (e, d) => { if (!d._isHub) { d.fx = e.x; d.fy = e.y; } })
+          .on('end', (e, d) => { if (!e.active) simulation.alphaTarget(0); if (!d._isHub) { d.fx = null; d.fy = null; } })
+        )
+        .on('click', (e, d) => selectNode(d, node));
+
+      node.append('circle')
+        .attr('r', d => d._isHub ? 40 : 28)
+        .style('fill', d => d._isHub ? '#f5a623' : null)
+        .style('stroke', d => d._isHub ? '#fff' : null);
+
+      node.append('text')
+        .text(d => truncate(d.center_text, d._isHub ? 18 : 16))
+        .style('fill', d => d._isHub ? '#111' : null)
+        .attr('dy', 0);
+
+      simulation.on('tick', () => {
+        link
+          .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+          .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+
+        linkLabel
+          .attr('x', d => (d.source.x + d.target.x) / 2)
+          .attr('y', d => (d.source.y + d.target.y) / 2);
+
+        node.attr('transform', d => `translate(${d.x},${d.y})`);
+      });
+    }
+
+    function selectNode(d, nodeSelection) {
+      nodeSelection.classed('selected', n => n.id === d.id);
+
+      const detail = document.getElementById('node-detail');
+
+      if (d._isHub) {
+        const labelsHtml = d.branches.length > 0
+          ? '<ul>' + d.branches.map(b =>
+              `<li><span class="position">${b.position}.</span> ${escapeHtml(b.text)}</li>`
+            ).join('') + '</ul>'
+          : '<p class="empty">No branch labels</p>';
+        detail.innerHTML = `
+          <p style="font-size:0.75rem;color:#888;margin-bottom:6px">Project question</p>
+          <div class="center" style="color:#f5a623">${escapeHtml(d.center_text)}</div>
+          ${labelsHtml}
+        `;
+        return;
+      }
+
+      const branchesHtml = d.branches.length > 0
+        ? '<ul>' + d.branches.map(b =>
+            `<li><span class="position">${b.position}.</span> ${escapeHtml(b.text)}</li>`
+          ).join('') + '</ul>'
+        : '<p class="empty">No branches</p>';
+
+      detail.innerHTML = `
+        <div class="center">${escapeHtml(d.center_text)}</div>
+        ${branchesHtml}
+      `;
+    }
+
+    function truncate(str, max) {
+      return str.length > max ? str.slice(0, max) + '…' : str;
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('error');
+      el.textContent = msg;
+      el.style.display = 'block';
+      document.getElementById('project-title').textContent = 'Error';
+    }
+  </script>
+</body>
+</html>

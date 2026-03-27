@@ -28,36 +28,41 @@ A webapp where users submit mental map nodes (center concept + branches), data i
 
 ---
 
-## Step 2 — Media attachments per branch
+## Step 2 — Automatic branch connections (autolink) ✓
 
-- [ ] Optional image / video / audio upload per branch
-- [ ] Files stored on disk (e.g. `uploads/`)
-- [ ] Schema: add `branches.media_path` and `branches.media_type`
-- [ ] Admin view updated to display thumbnails / media players inline
+- [x] `connections` table: project_id, node_id_a, node_id_b, shared_keywords (JSON)
+- [x] `keywords.js`: pure-JS keyword extraction + stop-word filter (EN + FR)
+- [x] `computeConnections(projectId, newNodeId)` called inside `createNode`
+- [x] `GET /api/projects/:uuid/connections` — public endpoint
+- [x] `GET /api/projects/:uuid/nodes` — public endpoint (for graph page)
 
 ---
 
-## Step 3 — 2D force graph visualization
+## Step 3 — 2D force graph visualization ✓
 
-- [ ] Add D3.js force-directed graph in admin view
-- [ ] Nodes = center concepts, edges = shared keywords between branches
-- [ ] Click a node to expand its branches
-- [ ] Replace or augment the card list
+- [x] `public/graph.html` with D3.js v7 (CDN, no build step)
+- [x] Nodes = center concepts, edges = shared keyword connections
+- [x] Zoom + pan; drag nodes
+- [x] Click node → sidebar shows branches
+- [x] "View graph →" link in admin project cards
+- [x] `/graph/:uuid` Express route
 
 ---
 
 ## Step 4 — 3D rotating graph
 
-- [ ] Replace or layer over D3 graph with Three.js / `3d-force-graph`
+- [ ] Replace or layer over D3 graph with `3d-force-graph` (CDN)
 - [ ] Orbiting camera, node labels, click-to-focus
 
 ---
 
-## Step 5 — Automatic branch connections
+## Step 5 — Media attachments per branch
 
-- [ ] On insert: extract keywords from branch texts (simple tokenization or NLP)
-- [ ] Store keyword index; compute overlaps between nodes
-- [ ] Expose connections via API; visualize as edges in the graph
+- [ ] Optional image / video / audio upload per branch (`multer`)
+- [ ] Files stored on disk (`uploads/`)
+- [ ] Schema: `ALTER TABLE branches ADD COLUMN media_path TEXT` + `media_type`
+- [ ] Submission form: optional file input per branch
+- [ ] Admin view: thumbnails / media players inline
 
 ---
 

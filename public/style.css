@@ -104,7 +104,7 @@ button:hover {
 }
 
 .message.hidden {
-  display: none;
+  display: none !important;
 }
 
 
@@ -190,7 +190,7 @@ button:hover {
 }
 
 .hidden {
-  display: none;
+  display: none !important;
 }
 
 /* Admin sections */
@@ -243,6 +243,25 @@ button:hover {
   font-weight: 600;
   background: #4a90e2;
   flex-shrink: 0;
+}
+
+.secondary-btn {
+  background: #6c757d;
+}
+
+.secondary-btn:hover {
+  background: #545b62;
+}
+
+.graph-link {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #27ae60;
+  text-decoration: none;
+}
+
+.graph-link:hover {
+  text-decoration: underline;
 }
 
 /* Toggle submissions button */

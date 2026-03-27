@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
-const { createProject, getProjectByUUID, getAllProjects, createNode, getAllNodes } = require('./db');
+const { createProject, getProjectByUUID, getAllProjects, createNode, getAllNodes, getNodesByProject, getConnectionsByProject, recomputeAllConnections } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -55,6 +55,20 @@ app.get('/api/projects/:uuid', (req, res) => {
   return res.json(project);
 });
 
+// Public: get all nodes for a project (for graph rendering)
+app.get('/api/projects/:uuid/nodes', (req, res) => {
+  const project = getProjectByUUID(req.params.uuid);
+  if (!project) return res.status(404).json({ error: 'Project not found' });
+  return res.json(getNodesByProject(project.id));
+});
+
+// Public: get connections for a project
+app.get('/api/projects/:uuid/connections', (req, res) => {
+  const project = getProjectByUUID(req.params.uuid);
+  if (!project) return res.status(404).json({ error: 'Project not found' });
+  return res.json(getConnectionsByProject(project.id));
+});
+
 // Public: submit a node (requires valid project_uuid)
 app.post('/api/nodes', (req, res) => {
   const { project_uuid, center_text, branches } = req.body;
@@ -85,9 +99,20 @@ app.get('/api/nodes', basicAuth, (req, res) => {
   return res.json(getAllNodes());
 });
 
+// Admin: recompute all connections (use after changing keyword logic)
+app.post('/api/admin/recompute-connections', basicAuth, (req, res) => {
+  recomputeAllConnections();
+  return res.json({ ok: true });
+});
+
 // Serve submission form for UUID links
 app.get('/submit/:uuid', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Serve graph visualization
+app.get('/graph/:uuid', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'graph.html'));
 });
 
 app.use(express.static(path.join(__dirname, 'public')));

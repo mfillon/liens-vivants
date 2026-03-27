@@ -46,7 +46,27 @@ Context and decisions for future AI-assisted sessions on this project.
 - Server runs with `npm start`
 - Admin creates projects at `/admin.html`, copies UUID link
 - Users submit via `/submit/<uuid>` with custom-labeled form
-- Ready for Step 2 (media attachments)
+
+---
+
+## Session 3 — 2026-03-27
+
+**Goal:** Autolink + 2D force graph visualization (reprioritized roadmap).
+
+**Completed:**
+- `keywords.js`: pure-JS keyword extraction, stop-word list (EN + FR), `extractKeywordsFromTexts`, `intersect`
+- `connections` table in `db.js`; `computeConnections` called from `createNode`
+- `getConnectionsByProject`, `getNodesByProject` exported from `db.js`
+- `GET /api/projects/:uuid/nodes` and `GET /api/projects/:uuid/connections` (public)
+- `/graph/:uuid` Express route → `public/graph.html`
+- `public/graph.html`: D3.js v7 force-directed graph, dark theme, zoom/pan/drag, click-to-inspect sidebar
+- Admin panel: "View graph →" link per project card
+- CSS: `.graph-link`
+
+**State at end of session:**
+- Autolink fires on every node insert
+- Graph page at `/graph/<uuid>` shows nodes + connections
+- Ready for Step 4 (3D) or Step 5 (media attachments)
 
 ---
 

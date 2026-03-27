@@ -1,6 +1,7 @@
 const { DatabaseSync } = require('node:sqlite');
 const { randomUUID } = require('crypto');
 const path = require('path');
+const { extractKeywordsFromTexts, intersect } = require('./keywords');
 
 const db = new DatabaseSync(path.join(__dirname, 'data.db'));
 
@@ -32,6 +33,15 @@ db.exec(`
     position INTEGER NOT NULL,
     text TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS connections (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER NOT NULL REFERENCES projects(id),
+    node_id_a INTEGER NOT NULL REFERENCES nodes(id),
+    node_id_b INTEGER NOT NULL REFERENCES nodes(id),
+    shared_keywords TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
 `);
 
 // Idempotent: add project_id column to existing nodes table if missing
@@ -39,17 +49,13 @@ try {
   db.exec('ALTER TABLE nodes ADD COLUMN project_id INTEGER REFERENCES projects(id)');
 } catch (_) { /* column already exists */ }
 
+// --- Projects ---
 const insertProject = db.prepare('INSERT INTO projects (uuid, center_label) VALUES (?, ?)');
 const insertBranchLabel = db.prepare('INSERT INTO project_branch_labels (project_id, position, label) VALUES (?, ?, ?)');
 const selectProjectByUUID = db.prepare('SELECT * FROM projects WHERE uuid = ?');
 const selectBranchLabels = db.prepare('SELECT * FROM project_branch_labels WHERE project_id = ? ORDER BY position');
 const selectAllProjects = db.prepare('SELECT * FROM projects ORDER BY created_at DESC');
 const selectNodeCountByProject = db.prepare('SELECT COUNT(*) as count FROM nodes WHERE project_id = ?');
-
-const insertNode = db.prepare('INSERT INTO nodes (project_id, center_text) VALUES (?, ?)');
-const insertBranch = db.prepare('INSERT INTO branches (node_id, position, text) VALUES (?, ?, ?)');
-const selectNodes = db.prepare('SELECT * FROM nodes ORDER BY created_at DESC');
-const selectBranches = db.prepare('SELECT * FROM branches WHERE node_id = ? ORDER BY position');
 
 function createProject(center_label, branch_labels) {
   const uuid = randomUUID();
@@ -82,6 +88,13 @@ function getAllProjects() {
   }));
 }
 
+// --- Nodes ---
+const insertNode = db.prepare('INSERT INTO nodes (project_id, center_text) VALUES (?, ?)');
+const insertBranch = db.prepare('INSERT INTO branches (node_id, position, text) VALUES (?, ?, ?)');
+const selectNodes = db.prepare('SELECT * FROM nodes ORDER BY created_at DESC');
+const selectBranches = db.prepare('SELECT * FROM branches WHERE node_id = ? ORDER BY position');
+const selectNodesByProject = db.prepare('SELECT * FROM nodes WHERE project_id = ? ORDER BY created_at DESC');
+
 function createNode(project_id, center_text, branches) {
   const nodeResult = insertNode.run(project_id, center_text);
   const nodeId = nodeResult.lastInsertRowid;
@@ -90,6 +103,9 @@ function createNode(project_id, center_text, branches) {
     if (text && text.trim()) {
       insertBranch.run(nodeId, i + 1, text.trim());
     }
+  }
+  if (project_id) {
+    computeConnections(project_id, nodeId);
   }
   return nodeId;
 }
@@ -102,4 +118,69 @@ function getAllNodes() {
   }));
 }
 
-module.exports = { createProject, getProjectByUUID, getAllProjects, createNode, getAllNodes };
+function getNodesByProject(projectId) {
+  const nodes = selectNodesByProject.all(projectId);
+  return nodes.map(node => ({
+    ...node,
+    branches: selectBranches.all(node.id),
+  }));
+}
+
+// --- Connections (autolink) ---
+const insertConnection = db.prepare(
+  'INSERT INTO connections (project_id, node_id_a, node_id_b, shared_keywords) VALUES (?, ?, ?, ?)'
+);
+const deleteConnectionsForNode = db.prepare(
+  'DELETE FROM connections WHERE node_id_a = ? OR node_id_b = ?'
+);
+const selectConnectionsByProject = db.prepare(
+  'SELECT * FROM connections WHERE project_id = ? ORDER BY created_at DESC'
+);
+
+function computeConnections(projectId, newNodeId) {
+  // Clear existing connections involving this node
+  deleteConnectionsForNode.run(newNodeId, newNodeId);
+
+  // Build keyword set from branches only (not center text — center text answers the
+  // same question for all nodes, so shared words there don't indicate a real connection)
+  const newBranches = selectBranches.all(newNodeId);
+  const newKeywords = extractKeywordsFromTexts(newBranches.map(b => b.text));
+
+  if (newKeywords.size === 0) return;
+
+  // Compare against all other nodes in the project
+  const otherNodes = db.prepare(
+    'SELECT * FROM nodes WHERE project_id = ? AND id != ?'
+  ).all(projectId, newNodeId);
+
+  for (const other of otherNodes) {
+    const otherBranches = selectBranches.all(other.id);
+    const otherKeywords = extractKeywordsFromTexts(otherBranches.map(b => b.text));
+
+    const shared = intersect(newKeywords, otherKeywords);
+    if (shared.length > 0) {
+      insertConnection.run(projectId, newNodeId, other.id, JSON.stringify(shared));
+    }
+  }
+}
+
+function getConnectionsByProject(projectId) {
+  return selectConnectionsByProject.all(projectId).map(c => ({
+    ...c,
+    shared_keywords: JSON.parse(c.shared_keywords),
+  }));
+}
+
+function recomputeAllConnections() {
+  db.exec('DELETE FROM connections');
+  const allNodes = db.prepare('SELECT * FROM nodes WHERE project_id IS NOT NULL').all();
+  for (const node of allNodes) {
+    computeConnections(node.project_id, node.id);
+  }
+}
+
+module.exports = {
+  createProject, getProjectByUUID, getAllProjects,
+  createNode, getAllNodes, getNodesByProject,
+  getConnectionsByProject, recomputeAllConnections,
+};
