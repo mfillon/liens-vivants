@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
-const { createNode, getAllNodes } = require('./db');
+const { createProject, getProjectByUUID, getAllProjects, createNode, getAllNodes } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -26,8 +26,47 @@ function basicAuth(req, res, next) {
   return res.status(401).json({ error: 'Invalid credentials' });
 }
 
+// Admin: create a project
+app.post('/api/projects', basicAuth, (req, res) => {
+  const { center_label, branch_labels } = req.body;
+
+  if (!center_label || !center_label.trim()) {
+    return res.status(400).json({ error: 'center_label is required' });
+  }
+
+  const labels = Array.isArray(branch_labels) ? branch_labels : [];
+  if (labels.length > 5) {
+    return res.status(400).json({ error: 'branch_labels must have at most 5 items' });
+  }
+
+  const project = createProject(center_label.trim(), labels);
+  return res.status(201).json(project);
+});
+
+// Admin: list all projects
+app.get('/api/projects', basicAuth, (req, res) => {
+  return res.json(getAllProjects());
+});
+
+// Public: get project by UUID (for form rendering)
+app.get('/api/projects/:uuid', (req, res) => {
+  const project = getProjectByUUID(req.params.uuid);
+  if (!project) return res.status(404).json({ error: 'Project not found' });
+  return res.json(project);
+});
+
+// Public: submit a node (requires valid project_uuid)
 app.post('/api/nodes', (req, res) => {
-  const { center_text, branches } = req.body;
+  const { project_uuid, center_text, branches } = req.body;
+
+  if (!project_uuid) {
+    return res.status(400).json({ error: 'project_uuid is required' });
+  }
+
+  const project = getProjectByUUID(project_uuid);
+  if (!project) {
+    return res.status(404).json({ error: 'Invalid or unknown project link' });
+  }
 
   if (!center_text || !center_text.trim()) {
     return res.status(400).json({ error: 'center_text is required' });
@@ -37,13 +76,18 @@ app.post('/api/nodes', (req, res) => {
     return res.status(400).json({ error: 'branches must be an array of up to 5 items' });
   }
 
-  const nodeId = createNode(center_text.trim(), branches);
+  const nodeId = createNode(project.id, center_text.trim(), branches);
   return res.status(201).json({ id: nodeId });
 });
 
+// Admin: list all nodes
 app.get('/api/nodes', basicAuth, (req, res) => {
-  const nodes = getAllNodes();
-  return res.json(nodes);
+  return res.json(getAllNodes());
+});
+
+// Serve submission form for UUID links
+app.get('/submit/:uuid', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.use(express.static(path.join(__dirname, 'public')));

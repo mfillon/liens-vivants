@@ -16,6 +16,18 @@ A webapp where users submit mental map nodes (center concept + branches), data i
 
 ---
 
+## Step 1b — Admin projects + UUID-gated links ✓
+
+- [x] `projects` table: uuid, center_label, branch_labels
+- [x] `POST /api/projects` (admin): create project, returns UUID
+- [x] `GET /api/projects` (admin): list projects with submission counts
+- [x] `GET /api/projects/:uuid` (public): return labels for form rendering
+- [x] `POST /api/nodes` now requires `project_uuid`; validates against DB
+- [x] `/submit/:uuid` route serves user form with dynamic labels
+- [x] Admin dashboard: create project form + projects list + copy link + expandable submissions
+
+---
+
 ## Step 2 — Media attachments per branch
 
 - [ ] Optional image / video / audio upload per branch

@@ -3,81 +3,124 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mental Map — Submit Node</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Mental Map — Submit</title>
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
   <div class="container">
-    <h1>Submit a Mental Map Node</h1>
-    <form id="nodeForm">
-      <div class="field">
-        <label for="centerText">Center Node <span class="required">*</span></label>
-        <textarea id="centerText" name="center_text" rows="3" placeholder="What is the central concept?" required></textarea>
-      </div>
+    <div id="invalidLink" class="message error hidden">Invalid link. Please use the link provided by the organizer.</div>
+    <div id="notFound" class="message error hidden">Link not found or expired. Please contact the organizer.</div>
 
-      <fieldset>
-        <legend>Branches (up to 5)</legend>
+    <div id="formSection" class="hidden">
+      <h1 id="pageTitle">Submit a Mental Map Node</h1>
+      <form id="nodeForm">
         <div class="field">
-          <label for="branch1">Branch 1</label>
-          <input type="text" id="branch1" placeholder="First related idea">
+          <label id="centerLabel" for="centerText">Your answer <span class="required">*</span></label>
+          <textarea id="centerText" name="center_text" rows="3" required></textarea>
         </div>
-        <div class="field">
-          <label for="branch2">Branch 2</label>
-          <input type="text" id="branch2" placeholder="Second related idea">
-        </div>
-        <div class="field">
-          <label for="branch3">Branch 3</label>
-          <input type="text" id="branch3" placeholder="Third related idea">
-        </div>
-        <div class="field">
-          <label for="branch4">Branch 4</label>
-          <input type="text" id="branch4" placeholder="Fourth related idea">
-        </div>
-        <div class="field">
-          <label for="branch5">Branch 5</label>
-          <input type="text" id="branch5" placeholder="Fifth related idea">
-        </div>
-      </fieldset>
 
-      <button type="submit">Submit Node</button>
-    </form>
+        <fieldset id="branchesFieldset">
+          <legend>Branches</legend>
+        </fieldset>
 
-    <div id="message" class="message hidden"></div>
+        <button type="submit">Submit</button>
+      </form>
+
+      <div id="message" class="message hidden"></div>
+    </div>
   </div>
 
   <script>
-    document.getElementById('nodeForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const msg = document.getElementById('message');
-      msg.className = 'message hidden';
+    const pathParts = window.location.pathname.split('/');
+    const uuid = pathParts[pathParts.indexOf('submit') + 1];
 
-      const center_text = document.getElementById('centerText').value.trim();
-      const branches = [1, 2, 3, 4, 5].map(i =>
-        document.getElementById(`branch${i}`).value.trim()
-      );
+    if (!uuid) {
+      document.getElementById('invalidLink').classList.remove('hidden');
+    } else {
+      loadProject(uuid);
+    }
 
+    async function loadProject(uuid) {
       try {
-        const res = await fetch('/api/nodes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ center_text, branches }),
+        const res = await fetch(`/api/projects/${uuid}`);
+        if (res.status === 404) {
+          document.getElementById('notFound').classList.remove('hidden');
+          return;
+        }
+        if (!res.ok) {
+          document.getElementById('notFound').classList.remove('hidden');
+          return;
+        }
+
+        const project = await res.json();
+        renderForm(project, uuid);
+      } catch (err) {
+        document.getElementById('notFound').classList.remove('hidden');
+      }
+    }
+
+    function renderForm(project, uuid) {
+      document.getElementById('pageTitle').textContent = project.center_label;
+      document.getElementById('centerLabel').innerHTML =
+        `${escapeHtml(project.center_label)} <span class="required">*</span>`;
+      document.getElementById('centerText').placeholder = 'Your answer…';
+
+      const fieldset = document.getElementById('branchesFieldset');
+      if (project.branch_labels.length === 0) {
+        fieldset.style.display = 'none';
+      } else {
+        project.branch_labels.forEach(bl => {
+          const div = document.createElement('div');
+          div.className = 'field';
+          div.innerHTML = `
+            <label for="branch${bl.position}">${escapeHtml(bl.label)}</label>
+            <input type="text" id="branch${bl.position}" placeholder="Your answer…">
+          `;
+          fieldset.appendChild(div);
         });
+      }
 
-        const data = await res.json();
+      document.getElementById('formSection').classList.remove('hidden');
 
-        if (res.ok) {
-          msg.textContent = `Node submitted successfully (ID: ${data.id})`;
-          msg.className = 'message success';
-          e.target.reset();
-        } else {
-          msg.textContent = `Error: ${data.error}`;
+      document.getElementById('nodeForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msg = document.getElementById('message');
+        msg.className = 'message hidden';
+
+        const center_text = document.getElementById('centerText').value.trim();
+        const branches = project.branch_labels.map(bl =>
+          (document.getElementById(`branch${bl.position}`) || {value: ''}).value.trim()
+        );
+
+        try {
+          const res = await fetch('/api/nodes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ project_uuid: uuid, center_text, branches }),
+          });
+
+          const data = await res.json();
+
+          if (res.ok) {
+            msg.textContent = 'Thank you! Your response has been submitted.';
+            msg.className = 'message success';
+            e.target.reset();
+          } else {
+            msg.textContent = `Error: ${data.error}`;
+            msg.className = 'message error';
+          }
+        } catch (err) {
+          msg.textContent = 'Network error. Please try again.';
           msg.className = 'message error';
         }
-      } catch (err) {
-        msg.textContent = 'Network error. Please try again.';
-        msg.className = 'message error';
-      }
-    });
+      });
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
   </script>
 </body>
 </html>

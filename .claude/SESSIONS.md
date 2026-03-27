@@ -26,6 +26,30 @@ Context and decisions for future AI-assisted sessions on this project.
 
 ---
 
+## Session 2 — 2026-03-27
+
+**Goal:** Admin projects + UUID-gated submission links.
+
+**Completed:**
+- New `projects` and `project_branch_labels` tables in `db.js`
+- `ALTER TABLE nodes ADD COLUMN project_id` wrapped in try/catch for idempotency
+- `createProject`, `getProjectByUUID`, `getAllProjects` DB functions
+- `createNode` updated to accept `project_id`
+- 3 new API routes: `POST /api/projects`, `GET /api/projects`, `GET /api/projects/:uuid`
+- `POST /api/nodes` now validates `project_uuid`
+- `/submit/:uuid` Express route → serves `public/index.html`
+- `public/index.html` rewritten: reads UUID from URL, fetches project labels, renders dynamic form
+- `public/admin.html` rewritten: login → dashboard with create-project form + projects list + copy link + expandable submissions
+- CSS extended with `.section`, `.link-box`, `.link-row`, `.copy-btn`, `.toggle-btn`, `.submission-card`
+
+**State at end of session:**
+- Server runs with `npm start`
+- Admin creates projects at `/admin.html`, copies UUID link
+- Users submit via `/submit/<uuid>` with custom-labeled form
+- Ready for Step 2 (media attachments)
+
+---
+
 ## How to Resume
 
 1. Read `.claude/PLAN.md` for the full roadmap and step status.
