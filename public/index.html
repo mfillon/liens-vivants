@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mental Map — Submit Node</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Submit a Mental Map Node</h1>
+    <form id="nodeForm">
+      <div class="field">
+        <label for="centerText">Center Node <span class="required">*</span></label>
+        <textarea id="centerText" name="center_text" rows="3" placeholder="What is the central concept?" required></textarea>
+      </div>
+
+      <fieldset>
+        <legend>Branches (up to 5)</legend>
+        <div class="field">
+          <label for="branch1">Branch 1</label>
+          <input type="text" id="branch1" placeholder="First related idea">
+        </div>
+        <div class="field">
+          <label for="branch2">Branch 2</label>
+          <input type="text" id="branch2" placeholder="Second related idea">
+        </div>
+        <div class="field">
+          <label for="branch3">Branch 3</label>
+          <input type="text" id="branch3" placeholder="Third related idea">
+        </div>
+        <div class="field">
+          <label for="branch4">Branch 4</label>
+          <input type="text" id="branch4" placeholder="Fourth related idea">
+        </div>
+        <div class="field">
+          <label for="branch5">Branch 5</label>
+          <input type="text" id="branch5" placeholder="Fifth related idea">
+        </div>
+      </fieldset>
+
+      <button type="submit">Submit Node</button>
+    </form>
+
+    <div id="message" class="message hidden"></div>
+  </div>
+
+  <script>
+    document.getElementById('nodeForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById('message');
+      msg.className = 'message hidden';
+
+      const center_text = document.getElementById('centerText').value.trim();
+      const branches = [1, 2, 3, 4, 5].map(i =>
+        document.getElementById(`branch${i}`).value.trim()
+      );
+
+      try {
+        const res = await fetch('/api/nodes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ center_text, branches }),
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          msg.textContent = `Node submitted successfully (ID: ${data.id})`;
+          msg.className = 'message success';
+          e.target.reset();
+        } else {
+          msg.textContent = `Error: ${data.error}`;
+          msg.className = 'message error';
+        }
+      } catch (err) {
+        msg.textContent = 'Network error. Please try again.';
+        msg.className = 'message error';
+      }
+    });
+  </script>
+</body>
+</html>

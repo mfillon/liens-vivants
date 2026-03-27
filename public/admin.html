@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mental Map — Admin</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Admin — All Submitted Nodes</h1>
+
+    <div id="authForm" class="auth-form">
+      <h2>Login</h2>
+      <div class="field">
+        <label for="adminUser">Username</label>
+        <input type="text" id="adminUser" autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="adminPass">Password</label>
+        <input type="password" id="adminPass" autocomplete="current-password">
+      </div>
+      <button id="loginBtn">Load Nodes</button>
+      <div id="authError" class="message error hidden"></div>
+    </div>
+
+    <div id="nodeList" class="hidden"></div>
+  </div>
+
+  <script>
+    document.getElementById('loginBtn').addEventListener('click', loadNodes);
+    document.getElementById('adminPass').addEventListener('keydown', e => {
+      if (e.key === 'Enter') loadNodes();
+    });
+
+    async function loadNodes() {
+      const user = document.getElementById('adminUser').value;
+      const pass = document.getElementById('adminPass').value;
+      const authError = document.getElementById('authError');
+      authError.className = 'message error hidden';
+
+      const credentials = btoa(`${user}:${pass}`);
+
+      try {
+        const res = await fetch('/api/nodes', {
+          headers: { 'Authorization': `Basic ${credentials}` },
+        });
+
+        if (res.status === 401) {
+          authError.textContent = 'Invalid credentials.';
+          authError.className = 'message error';
+          return;
+        }
+
+        if (!res.ok) {
+          authError.textContent = 'Server error. Please try again.';
+          authError.className = 'message error';
+          return;
+        }
+
+        const nodes = await res.json();
+        renderNodes(nodes);
+        document.getElementById('authForm').classList.add('hidden');
+        document.getElementById('nodeList').classList.remove('hidden');
+      } catch (err) {
+        authError.textContent = 'Network error. Please try again.';
+        authError.className = 'message error';
+      }
+    }
+
+    function renderNodes(nodes) {
+      const container = document.getElementById('nodeList');
+
+      if (nodes.length === 0) {
+        container.innerHTML = '<p class="empty">No nodes submitted yet.</p>';
+        return;
+      }
+
+      container.innerHTML = `<p class="count">${nodes.length} node${nodes.length !== 1 ? 's' : ''} found</p>`;
+
+      nodes.forEach(node => {
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        const date = new Date(node.created_at + 'Z').toLocaleString();
+
+        let branchesHtml = '';
+        if (node.branches.length > 0) {
+          branchesHtml = '<ul>' + node.branches.map(b =>
+            `<li><span class="position">${b.position}.</span> ${escapeHtml(b.text)}</li>`
+          ).join('') + '</ul>';
+        } else {
+          branchesHtml = '<p class="empty">No branches</p>';
+        }
+
+        card.innerHTML = `
+          <div class="card-header">
+            <h2>${escapeHtml(node.center_text)}</h2>
+            <span class="timestamp">${date}</span>
+          </div>
+          <div class="branches">${branchesHtml}</div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>
