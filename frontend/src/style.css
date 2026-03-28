@@ -65,6 +65,22 @@ input:focus {
   border-color: #4a90e2;
 }
 
+.file-input {
+  font-size: 0.8rem;
+  color: #666;
+  cursor: pointer;
+}
+
+.branch-media {
+  display: block;
+  margin-top: 6px;
+  max-width: 100%;
+  border-radius: 4px;
+}
+audio.branch-media, video.branch-media {
+  width: 100%;
+}
+
 fieldset {
   border: 1px solid #ddd;
   border-radius: 8px;

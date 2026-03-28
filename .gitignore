@@ -10,3 +10,5 @@ data.db-shm
 data.db-wal
 .env
 .idea
+backend/uploads/*
+!backend/uploads/.gitkeep

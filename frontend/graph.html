@@ -36,7 +36,7 @@
     #orbit-btn:hover { color: #e0e0e0; border-color: #4a4d5a; }
 
     #sidebar {
-      width: 300px;
+      width: 420px;
       background: #1a1d27;
       border-left: 1px solid #2a2d3a;
       padding: 24px 20px;
@@ -81,6 +81,20 @@
 
     .empty { color: #555; font-size: 0.875rem; font-style: italic; }
 
+    .branch-media { display: block; margin-top: 6px; max-width: 100%; border-radius: 4px; }
+    img.branch-media { cursor: zoom-in; }
+    audio.branch-media, video.branch-media { width: 100%; }
+
+    #lightbox {
+      display: none;
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,0.9);
+      align-items: center; justify-content: center;
+      cursor: zoom-out;
+    }
+    #lightbox.open { display: flex; }
+    #lightbox img { max-width: 90vw; max-height: 90vh; border-radius: 6px; object-fit: contain; }
+
     #error {
       position: absolute; top: 50%; left: 50%;
       transform: translate(-50%, -50%);
@@ -101,6 +115,31 @@
     <div id="detail-content"></div>
   </div>
 
+  <div id="lightbox"><img id="lightbox-img" src="" alt=""></div>
+
   <script type="module" src="/src/graph.js"></script>
+  <script>
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightbox-img');
+
+    document.getElementById('detail-content').addEventListener('click', e => {
+      if (e.target.tagName === 'IMG' && e.target.classList.contains('branch-media')) {
+        lightboxImg.src = e.target.src;
+        lightbox.classList.add('open');
+      }
+    });
+
+    lightbox.addEventListener('click', () => {
+      lightbox.classList.remove('open');
+      lightboxImg.src = '';
+    });
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        lightbox.classList.remove('open');
+        lightboxImg.src = '';
+      }
+    });
+  </script>
 </body>
 </html>

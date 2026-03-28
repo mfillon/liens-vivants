@@ -44,9 +44,15 @@ db.exec(`
   );
 `);
 
-// Idempotent: add project_id column to existing nodes table if missing
+// Idempotent migrations
 try {
   db.exec('ALTER TABLE nodes ADD COLUMN project_id INTEGER REFERENCES projects(id)');
+} catch (_) { /* column already exists */ }
+try {
+  db.exec('ALTER TABLE branches ADD COLUMN media_path TEXT');
+} catch (_) { /* column already exists */ }
+try {
+  db.exec('ALTER TABLE branches ADD COLUMN media_type TEXT');
 } catch (_) { /* column already exists */ }
 
 // --- Projects ---
@@ -94,20 +100,35 @@ const insertBranch = db.prepare('INSERT INTO branches (node_id, position, text) 
 const selectNodes = db.prepare('SELECT * FROM nodes ORDER BY created_at DESC');
 const selectBranches = db.prepare('SELECT * FROM branches WHERE node_id = ? ORDER BY position');
 const selectNodesByProject = db.prepare('SELECT * FROM nodes WHERE project_id = ? ORDER BY created_at DESC');
+const updateBranchMedia = db.prepare('UPDATE branches SET media_path = ?, media_type = ? WHERE id = ?');
+const selectBranchById = db.prepare('SELECT * FROM branches WHERE id = ?');
 
 function createNode(project_id, center_text, branches) {
   const nodeResult = insertNode.run(project_id, center_text);
   const nodeId = nodeResult.lastInsertRowid;
+  const branchIds = [];
   for (let i = 0; i < branches.length; i++) {
     const text = branches[i];
     if (text && text.trim()) {
-      insertBranch.run(nodeId, i + 1, text.trim());
+      const r = insertBranch.run(nodeId, i + 1, text.trim());
+      branchIds.push({ position: i + 1, id: Number(r.lastInsertRowid) });
     }
   }
   if (project_id) {
     computeConnections(project_id, nodeId);
   }
-  return nodeId;
+  return { nodeId: Number(nodeId), branchIds };
+}
+
+function saveBranchMedia(branchId, mediaPath, mediaType) {
+  const branch = selectBranchById.get(branchId);
+  if (!branch) return null;
+  updateBranchMedia.run(mediaPath, mediaType, branchId);
+  return true;
+}
+
+function getBranchById(branchId) {
+  return selectBranchById.get(branchId);
 }
 
 function getAllNodes() {
@@ -183,4 +204,5 @@ module.exports = {
   createProject, getProjectByUUID, getAllProjects,
   createNode, getAllNodes, getNodesByProject,
   getConnectionsByProject, recomputeAllConnections,
+  saveBranchMedia, getBranchById,
 };

@@ -171,7 +171,7 @@ async function toggleSubmissions(btn) {
       const date = new Date(node.created_at + 'Z').toLocaleString();
       const branchesHtml = node.branches.length > 0
         ? '<ul>' + node.branches.map(b =>
-            `<li><span class="position">${b.position}.</span> ${escapeHtml(b.text)}</li>`
+            `<li><span class="position">${b.position}.</span> ${escapeHtml(b.text)}${mediaHtml(b)}</li>`
           ).join('') + '</ul>'
         : '';
       return `
@@ -230,6 +230,18 @@ function copyText(text) {
 }
 
 window.copyText = copyText;
+
+function mediaHtml(branch) {
+  if (!branch.media_path) return '';
+  const src = `/uploads/${branch.media_path}`;
+  if (branch.media_type?.startsWith('image/'))
+    return `<img src="${src}" class="branch-media">`;
+  if (branch.media_type?.startsWith('audio/'))
+    return `<audio controls src="${src}" class="branch-media"></audio>`;
+  if (branch.media_type?.startsWith('video/'))
+    return `<video controls src="${src}" class="branch-media"></video>`;
+  return '';
+}
 
 function escapeHtml(str) {
   const div = document.createElement('div');

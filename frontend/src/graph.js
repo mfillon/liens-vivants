@@ -150,16 +150,10 @@ function showHub(d) {
 
 function showSingleNode(d) {
   document.getElementById('sidebar-hint').textContent = 'Response';
-  const bl = d.branches?.length > 0
-    ? '<ul>' + d.branches.map(b =>
-        `<li><span class="position">${b.position}.</span> ${escapeHtml(b.text)}</li>`
-      ).join('') + '</ul>'
-    : '<p class="empty">No branches</p>';
-
   document.getElementById('detail-content').innerHTML = `
     <div class="node-block">
       <div class="center">${escapeHtml(d.center_text)}</div>
-      ${bl}
+      ${branchesHtml(d.branches)}
     </div>`;
 }
 
@@ -183,8 +177,20 @@ function showConnection(nodeA, nodeB, keywords) {
 function branchesHtml(branches) {
   if (!branches?.length) return '<p class="empty">No branches</p>';
   return '<ul>' + branches.map(b =>
-    `<li><span class="position">${b.position}.</span> ${escapeHtml(b.text)}</li>`
+    `<li><span class="position">${b.position}.</span> ${escapeHtml(b.text)}${mediaHtml(b)}</li>`
   ).join('') + '</ul>';
+}
+
+function mediaHtml(branch) {
+  if (!branch.media_path) return '';
+  const src = `/uploads/${branch.media_path}`;
+  if (branch.media_type?.startsWith('image/'))
+    return `<img src="${src}" class="branch-media">`;
+  if (branch.media_type?.startsWith('audio/'))
+    return `<audio controls src="${src}" class="branch-media"></audio>`;
+  if (branch.media_type?.startsWith('video/'))
+    return `<video controls src="${src}" class="branch-media"></video>`;
+  return '';
 }
 
 function truncate(str, max) {

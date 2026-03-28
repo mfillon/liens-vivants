@@ -1,12 +1,30 @@
 require('dotenv').config({ path: require('path').join(__dirname, '../../.env') });
 const express = require('express');
 const path = require('path');
-const { createProject, getProjectByUUID, getAllProjects, createNode, getAllNodes, getNodesByProject, getConnectionsByProject, recomputeAllConnections } = require('./db');
+const multer = require('multer');
+const { createProject, getProjectByUUID, getAllProjects, createNode, getAllNodes, getNodesByProject, getConnectionsByProject, recomputeAllConnections, saveBranchMedia, getBranchById } = require('./db');
+
+const uploadsDir = path.join(__dirname, '../uploads');
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: uploadsDir,
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase();
+      cb(null, `branch-${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
+    },
+  }),
+  limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (/^(image|audio|video)\//.test(file.mimetype)) cb(null, true);
+    else cb(Object.assign(new Error('Only image, audio, and video files are allowed'), { status: 400 }));
+  },
+});
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
+app.use('/uploads', express.static(uploadsDir));
 
 function basicAuth(req, res, next) {
   const authHeader = req.headers['authorization'];
@@ -90,8 +108,25 @@ app.post('/api/nodes', (req, res) => {
     return res.status(400).json({ error: 'branches must be an array of up to 5 items' });
   }
 
-  const nodeId = createNode(project.id, center_text.trim(), branches);
-  return res.status(201).json({ id: nodeId });
+  const { nodeId, branchIds } = createNode(project.id, center_text.trim(), branches);
+  return res.status(201).json({ id: nodeId, branchIds });
+});
+
+// Public: upload media for a branch
+app.post('/api/branches/:id/media', upload.single('file'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  const branchId = parseInt(req.params.id, 10);
+  if (!getBranchById(branchId)) return res.status(404).json({ error: 'Branch not found' });
+  saveBranchMedia(branchId, req.file.filename, req.file.mimetype);
+  return res.status(201).json({ path: `/uploads/${req.file.filename}` });
+});
+
+// Multer error handler
+app.use((err, _req, res, _next) => {
+  if (err.status === 400 || err instanceof multer.MulterError) {
+    return res.status(400).json({ error: err.message });
+  }
+  res.status(500).json({ error: 'Internal server error' });
 });
 
 // Admin: list all nodes
