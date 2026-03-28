@@ -14,74 +14,26 @@
       display: flex;
       height: 100vh;
       overflow: hidden;
+      position: relative;
     }
 
-    #graph-container { flex: 1; position: relative; }
+    #graph-3d { flex: 1; position: relative; width: 0; height: 100%; overflow: hidden; }
 
-    svg { width: 100%; height: 100%; }
-
-    .node circle {
-      fill: #4a90e2;
-      stroke: #fff;
-      stroke-width: 1.5px;
+    #orbit-btn {
+      position: fixed;
+      bottom: 16px;
+      left: 16px;
+      z-index: 10;
+      background: rgba(26, 29, 39, 0.85);
+      color: #aaa;
+      border: 1px solid #2a2d3a;
+      border-radius: 6px;
+      padding: 6px 14px;
+      font-size: 0.8rem;
       cursor: pointer;
-      transition: fill 0.15s;
+      backdrop-filter: blur(4px);
     }
-    .node.selected circle, .node circle:hover { fill: #f5a623; }
-
-    .hub circle { fill: #f5a623; stroke: #fff; stroke-width: 2px; cursor: pointer; }
-    .hub.selected circle { fill: #e09010; }
-
-    .node text, .hub text {
-      font-size: 12px;
-      fill: #e0e0e0;
-      pointer-events: none;
-      text-anchor: middle;
-      dominant-baseline: central;
-    }
-    .hub text { fill: #fff; font-weight: 600; }
-
-    /* Real keyword connections */
-    .link {
-      stroke: #4a90e2;
-      stroke-opacity: 0.45;
-      stroke-width: 2px;
-      pointer-events: none;
-      transition: stroke-opacity 0.15s, stroke-width 0.15s;
-    }
-    .link.selected { stroke-opacity: 0.9; stroke-width: 3px; }
-
-    /* Invisible wide hit area for connections */
-    .link-hit {
-      stroke: transparent;
-      stroke-width: 28px;
-      cursor: pointer;
-      fill: none;
-    }
-
-    /* Hub anchor lines */
-    .hub-link {
-      stroke: #6a7a9a;
-      stroke-opacity: 0.4;
-      stroke-width: 1.5px;
-      stroke-dasharray: 5,4;
-      pointer-events: none;
-    }
-    .hub-link.selected { stroke-opacity: 0.85; stroke: #aab; }
-
-    /* Invisible wide hit area for hub lines */
-    .hub-link-hit {
-      stroke: transparent;
-      stroke-width: 28px;
-      cursor: pointer;
-      fill: none;
-    }
-
-    .link-label {
-      font-size: 10px;
-      fill: #aaa;
-      pointer-events: none;
-    }
+    #orbit-btn:hover { color: #e0e0e0; border-color: #4a4d5a; }
 
     #sidebar {
       width: 300px;
@@ -90,6 +42,8 @@
       padding: 24px 20px;
       overflow-y: auto;
       flex-shrink: 0;
+      position: relative;
+      z-index: 1;
     }
     #sidebar h1 { font-size: 1rem; color: #aaa; margin-bottom: 6px; font-weight: 400; }
     .stats { font-size: 0.8rem; color: #555; margin-bottom: 20px; }
@@ -123,11 +77,7 @@
     }
     .shared-row { margin-bottom: 12px; flex-wrap: wrap; display: flex; }
 
-    .divider {
-      border: none;
-      border-top: 1px solid #2a2d3a;
-      margin: 12px 0;
-    }
+    .divider { border: none; border-top: 1px solid #2a2d3a; margin: 12px 0; }
 
     .empty { color: #555; font-size: 0.875rem; font-style: italic; }
 
@@ -140,10 +90,10 @@
   </style>
 </head>
 <body>
-  <div id="graph-container">
-    <svg id="svg"></svg>
+  <div id="graph-3d">
     <div id="error"></div>
   </div>
+  <button id="orbit-btn">⏸ Pause orbit</button>
   <div id="sidebar">
     <h1 id="project-title">Loading…</h1>
     <p class="stats" id="stats"></p>
