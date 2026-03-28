@@ -85,6 +85,7 @@ function renderGraph(project, nodes, connections) {
       }
     })
     .onBackgroundClick(() => {
+      window.__graphOrbit?.pause();
       document.getElementById('detail-content').innerHTML = '';
       document.getElementById('sidebar-hint').textContent = 'Click a node or connection to explore';
     });
