@@ -2,11 +2,11 @@
 
 ## Vision
 
-A webapp where users submit mental map nodes (center concept + branches), data is stored server-side, and the knowledge base is visualized as an interactive 2D then 3D graph. Nodes are auto-connected based on shared keywords.
+A webapp where users submit mental map nodes (center concept + branches), data is stored server-side, and the knowledge base is visualized as an interactive 3D force-directed graph. Nodes are auto-connected based on shared keywords.
 
 ---
 
-## Step 1 — Core submission + admin list
+## Step 1 — Core submission + admin list ✓
 
 - [x] User form: center text + up to 5 branches
 - [x] SQLite storage via Express API
@@ -38,37 +38,74 @@ A webapp where users submit mental map nodes (center concept + branches), data i
 
 ---
 
-## Step 3 — 2D force graph visualization ✓
+## Step 3 — Graph visualization ✓
 
-- [x] `public/graph.html` with D3.js v7 (CDN, no build step)
+- [x] `graph.html` with `3d-force-graph` (WebGL, 3D force-directed)
 - [x] Nodes = center concepts, edges = shared keyword connections
-- [x] Zoom + pan; drag nodes
+- [x] Hub node (fixed at origin, orange) anchors all nodes via faint links
 - [x] Click node → sidebar shows branches
 - [x] Click connection → sidebar shows both answers + shared keyword tags
-- [x] Click hub line → sidebar shows single node answer
-- [x] Hub node (fixed center, orange) anchors all nodes via dashed lines
-- [x] Hub lines drawn manually (bypass D3 forceLink ID resolution)
-- [x] All connections + hub lines have 28px invisible hit-area for easy clicking
-- [x] Hub text white (readable on both orange circle and dark background)
+- [x] Camera auto-orbits on load; pauses on any canvas click; toggle button
 - [x] "View graph →" link in admin project cards
 - [x] `/graph/:uuid` Express route
 
 ---
 
-## Step 4 — 3D rotating graph
+## Step 4 — Frontend build pipeline ✓
 
-- [ ] Replace or layer over D3 graph with `3d-force-graph` (CDN)
-- [ ] Orbiting camera, node labels, click-to-focus
+- [x] pnpm workspaces monorepo (`frontend/`, `backend/`)
+- [x] Vite MPA config: `submit.html`, `admin.html`, `graph.html` as separate entry points
+- [x] Custom Vite plugin rewrites `/submit/:uuid` and `/graph/:uuid` to static HTML in dev
+- [x] Vite dev proxy: `/api` and `/uploads` → `localhost:3000`
+- [x] Single root command: `pnpm dev` starts both servers via `concurrently`
+- [x] Production: Express serves `frontend/dist/` + handles dynamic routes
 
 ---
 
-## Step 5 — Media attachments per branch
+## Step 5 — Media attachments per branch ✓
 
-- [ ] Optional image / video / audio upload per branch (`multer`)
-- [ ] Files stored on disk (`uploads/`)
-- [ ] Schema: `ALTER TABLE branches ADD COLUMN media_path TEXT` + `media_type`
-- [ ] Submission form: optional file input per branch
-- [ ] Admin view: thumbnails / media players inline
+- [x] Optional image / video / audio upload per branch (`multer`)
+- [x] Files stored on disk (`backend/uploads/`)
+- [x] Schema: `ALTER TABLE branches ADD COLUMN media_path TEXT` + `media_type`
+- [x] Submission form: optional file input per branch
+- [x] Graph sidebar and admin view: inline image / audio / video players
+- [x] Lightbox for full-screen image viewing in graph sidebar
+- [x] `/uploads` served as static at both Express level and via Vite proxy
+
+---
+
+## Step 6 — Code quality (next)
+
+- [ ] ESLint + Prettier setup
+- [ ] `.editorconfig`
+- [ ] Lint and format scripts in `package.json`
+
+---
+
+## Step 7 — Testing
+
+- [ ] Vitest for unit tests (keyword extraction, connection logic)
+- [ ] Supertest for API integration tests
+- [ ] Coverage threshold
+
+---
+
+## Step 8 — Containerization & CI/CD
+
+- [ ] Dockerfile + `.dockerignore`
+- [ ] `docker-compose.yml`
+- [ ] GitHub Actions CI (lint + test + build)
+- [ ] CD to Railway / Render / Fly.io
+
+---
+
+## Step 9 — Production hardening
+
+- [ ] `helmet`, `express-rate-limit`
+- [ ] Structured logging (Pino)
+- [ ] Sentry error tracking
+- [ ] `GET /health` endpoint
+- [ ] Consistent error response format
 
 ---
 
@@ -76,4 +113,5 @@ A webapp where users submit mental map nodes (center concept + branches), data i
 
 - `better-sqlite3` was rejected: fails to compile on Node 24 / Apple Clang (C++20 issue). Using built-in `node:sqlite` instead (requires `--experimental-sqlite` flag, Node 22.5+).
 - `PRAGMA foreign_keys = ON` cannot be used inside a multi-statement `exec()` in `node:sqlite` — omitted (integrity enforced at app level).
-- No build step by design — keep it runnable with `node server.js`.
+- D3.js 2D graph replaced by `3d-force-graph` (Three.js/WebGL) — better visual impact for collective data.
+- npm replaced by pnpm (v10) with workspaces — faster installs, shared lockfile.

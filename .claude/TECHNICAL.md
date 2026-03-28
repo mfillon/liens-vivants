@@ -7,8 +7,6 @@ Complete these phases in order unless instructed otherwise.
 
 ## Project Structure
 
-The project currently runs as a single Node.js/Express app with frontend files served directly. Phase 0 will migrate it to the following target structure:
-
 ```
 /
 ├── .claude/
@@ -17,75 +15,57 @@ The project currently runs as a single Node.js/Express app with frontend files s
 ├── backend/               # Node.js / Express API
 │   ├── package.json
 │   ├── src/
-│   └── tests/
-├── frontend/              # Vite + Vanilla JS (Vue.js later)
+│   │   ├── server.js
+│   │   ├── db.js
+│   │   └── keywords.js
+│   ├── uploads/           # Uploaded media files (git-ignored)
+│   └── data.db            # SQLite database (git-ignored)
+├── frontend/              # Vite + Vanilla JS
 │   ├── package.json
-│   ├── index.html
+│   ├── vite.config.js
+│   ├── submit.html
+│   ├── admin.html
+│   ├── graph.html
 │   └── src/
-│       ├── main.js
-│       ├── components/
-│       └── styles/
-├── docker-compose.yml
+│       ├── submit.js
+│       ├── admin.js
+│       ├── graph.js
+│       └── style.css
+├── package.json           # Root: dev/build/start scripts via pnpm
+├── pnpm-workspace.yaml
 └── .github/
     └── workflows/
 ```
 
 ### Backend
-- **Runtime**: Node.js with Express
-- **Language**: JavaScript (ES Modules)
-- **Role**: REST API only — serves JSON, never HTML
+- **Runtime**: Node.js 22.5+ with Express
+- **Language**: CommonJS (require/module.exports)
+- **Role**: REST API only — serves JSON, never HTML (except prod static serving)
+- **Database**: `node:sqlite` (built-in, requires `--experimental-sqlite` flag)
 - **Port**: `3000`
 
 ### Frontend
-- **Build tool**: Vite
+- **Build tool**: Vite 8
 - **Language**: Vanilla JS (ES Modules)
-- **Framework**: None for now — migrate to **Vue.js** when UI complexity justifies it (graph visualization phase is the likely trigger)
-- **Graph library**: **Cytoscape.js** — purpose-built for interactive node/graph UIs
+- **Graph library**: `3d-force-graph` + `three-spritetext` (WebGL 3D)
 - **Port**: `5173` (Vite dev server)
-- **Build output**: `frontend/dist/` — static files served by Express in production (or a CDN)
+- **Build output**: `frontend/dist/` — static files served by Express in production
 
 ### Frontend → Backend communication
 - Frontend calls the backend API via `fetch`
-- In development: Vite proxies `/api` requests to `localhost:3000` (configured in `vite.config.js`)
-- In production: both are served from the same origin via Express serving `frontend/dist/`
+- In development: Vite proxies `/api` and `/uploads` to `localhost:3000`
+- In production: Express serves `frontend/dist/` and handles dynamic routes
 
 ---
 
-## Phase 0 — Frontend Build Setup
+## Phase 0 — Frontend Build Setup ✓ DONE
 
-Migrate from CDN imports to a proper Vite build pipeline.
-
-### Tasks
-- [ ] Create `frontend/` directory
-- [ ] Initialise with `npm create vite@latest frontend -- --template vanilla`
-- [ ] Move all existing frontend files (`*.html`, `*.css`, `*.js`) into `frontend/src/`
-- [ ] Replace all CDN `<script>` tags with proper `npm install` + ES module imports
-- [ ] Configure Vite dev proxy in `frontend/vite.config.js`:
-  ```js
-  export default {
-    server: {
-      proxy: {
-        '/api': 'http://localhost:3000'
-      }
-    }
-  }
-  ```
-- [ ] Add scripts to `frontend/package.json`:
-  ```json
-  "dev": "vite",
-  "build": "vite build",
-  "preview": "vite preview"
-  ```
-- [ ] Configure Express to serve `frontend/dist/` as static files in production:
-  ```js
-  app.use(express.static('../frontend/dist'))
-  ```
-- [ ] Update root `.gitignore` to cover `frontend/dist/` and `frontend/node_modules/`
-- [ ] Verify: `npm run dev` in `frontend/` and `npm run dev` in `backend/` both run concurrently
-
-### On Vue.js adoption
-Do not migrate to Vue.js yet. Revisit when the graph visualization feature is being built.
-At that point, run `npm create vue@latest` inside `frontend/` and migrate incrementally.
+- [x] pnpm workspaces monorepo
+- [x] Vite MPA with `rollupOptions.input` for 3 HTML entry points
+- [x] Custom Vite plugin rewrites `/submit/:uuid` → `submit.html`, `/graph/:uuid` → `graph.html` in dev
+- [x] Vite dev proxy: `/api` and `/uploads` → `localhost:3000`
+- [x] Root `pnpm dev` starts both servers via `concurrently`
+- [x] Production: Express serves `frontend/dist/` + dynamic route handlers
 
 ---
 
@@ -97,8 +77,7 @@ Set up linting and formatting before touching any other code.
 - [ ] Install and configure **ESLint** with the `eslint:recommended` ruleset
 - [ ] Install and configure **Prettier** — integrate with ESLint via `eslint-config-prettier`
 - [ ] Add `.editorconfig` for cross-editor consistency (2-space indent, LF line endings, UTF-8)
-- [ ] Ensure `.gitignore` covers: `node_modules/`, `.env`, `dist/`, `coverage/`
-- [ ] Add lint and format scripts to `package.json`:
+- [ ] Add lint and format scripts to root `package.json`:
   ```json
   "lint": "eslint .",
   "format": "prettier --write ."
@@ -106,23 +85,11 @@ Set up linting and formatting before touching any other code.
 
 ---
 
-## Phase 2 — Environment Management
+## Phase 2 — Environment Management ✓ DONE
 
-Never hardcode secrets or environment-specific values.
-
-### Tasks
-- [ ] Install `dotenv`
-- [ ] Create `.env.example` documenting every required variable with placeholder values
-- [ ] Load env in `app.js` or entry point: `import 'dotenv/config'`
-- [ ] Support three environments via `NODE_ENV`: `development`, `test`, `production`
-- [ ] Validate required env variables at startup — fail fast if any are missing
-
-### Required variables to document in `.env.example`
-```
-NODE_ENV=development
-PORT=3000
-# Add DB connection strings, API keys, etc. here as the project grows
-```
+- [x] `dotenv` installed, `.env` loaded with explicit path from `backend/src/`
+- [x] `.env.example` documents all required variables
+- [x] `ADMIN_USER`, `ADMIN_PASS`, `PORT` configurable
 
 ---
 
@@ -131,107 +98,64 @@ PORT=3000
 Focus on critical paths first: node creation, branch linking, connection/matching logic.
 
 ### Tasks
-- [ ] Install **Jest** (or **Vitest** if ESM is preferred) as dev dependency
+- [ ] Install **Vitest** as dev dependency (ESM-native, compatible with Vite)
 - [ ] Install **Supertest** for HTTP integration tests
-- [ ] Create `tests/` directory with structure mirroring `src/`
-- [ ] Add test script to `package.json`:
-  ```json
-  "test": "jest --coverage"
-  ```
+- [ ] Create `backend/tests/` directory
 - [ ] Write unit tests for:
-    - Node and branch creation logic
-    - Keyword matching / connection algorithm
+    - Keyword extraction + stop-word filtering
+    - Connection computation logic
 - [ ] Write integration tests for:
-    - `POST /nodes` — create a node
-    - `POST /nodes/:id/branches` — add a branch
-    - `GET /nodes` — retrieve graph data
+    - `POST /api/nodes` — create a node
+    - `POST /api/projects` — create a project
+    - `GET /api/projects/:uuid/connections` — connection results
 - [ ] Enforce minimum coverage threshold (suggested: 70%)
 
 ---
 
 ## Phase 4 — Containerization
 
-Containerize early to stay cloud-provider agnostic.
-
 ### Tasks
-- [ ] Create `Dockerfile`:
-  ```dockerfile
-  FROM node:20-alpine
-  WORKDIR /app
-  COPY package*.json ./
-  RUN npm ci --only=production
-  COPY . .
-  EXPOSE 3000
-  CMD ["node", "src/index.js"]
-  ```
-- [ ] Create `.dockerignore`: `node_modules`, `.env`, `coverage`, `*.md`
-- [ ] Create `docker-compose.yml` for local development:
-    - `app` service (the Express server, with hot reload)
-    - Any database service if applicable
+- [ ] Create `Dockerfile` (multi-stage: build frontend → copy dist into backend image)
+- [ ] Create `.dockerignore`
+- [ ] Create `docker-compose.yml` for local development
 - [ ] Verify app starts cleanly with `docker compose up`
 
 ---
 
 ## Phase 5 — CI Pipeline
 
-Run on every pull request and push to `main`.
-
 ### Tasks
 - [ ] Create `.github/workflows/ci.yml` (GitHub Actions)
-- [ ] Pipeline steps in order:
-    1. Checkout code
-    2. Set up Node.js (version 20)
-    3. Install dependencies (`npm ci`)
-    4. Run lint (`npm run lint`)
-    5. Run tests (`npm test`)
-    6. Build Docker image (`docker build .`)
+- [ ] Pipeline: checkout → Node.js setup → `pnpm install` → lint → test → build
 - [ ] Mark pipeline as required check before merging PRs
-
-### Example workflow trigger
-```yaml
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-```
 
 ---
 
 ## Phase 6 — CD & Cloud Deployment
 
-Keep provider-agnostic via Docker. Suggested providers for low-ops Node.js: **Railway**, **Render**, or **Fly.io**.
-
-### Tasks
-- [ ] Choose a cloud provider
-- [ ] Add deployment step to CI pipeline (runs only on `main` after tests pass)
-- [ ] Store all secrets in the provider's secret manager (never in the repo)
-- [ ] Configure environment variables in provider dashboard matching `.env.example`
-- [ ] Set up a staging environment before production
+- [ ] Choose provider (Railway, Render, or Fly.io — all support Docker)
+- [ ] Add deployment step to CI (runs only on `main` after tests pass)
+- [ ] Store secrets in provider's secret manager
+- [ ] Configure env vars matching `.env.example`
+- [ ] Staging environment before production
 
 ---
 
 ## Phase 7 — Production Hardening
 
 ### Security
-- [ ] Install `helmet` — sets secure HTTP headers
+- [ ] Install `helmet` — secure HTTP headers
 - [ ] Install `express-rate-limit` — protect against abuse
-- [ ] Ensure all user inputs are validated and sanitised
+- [ ] Validate and sanitise all user inputs
 
 ### Observability
-- [ ] Install **Pino** for structured JSON logging (fast, production-friendly)
-- [ ] Add **Sentry** for error tracking (free tier sufficient for academic project)
-- [ ] Add a health check endpoint:
-  ```
-  GET /health → 200 OK { status: "ok" }
-  ```
+- [ ] **Pino** for structured JSON logging
+- [ ] **Sentry** for error tracking
+- [ ] `GET /health` endpoint
 
 ### Reliability
-- [ ] Handle uncaught exceptions and unhandled promise rejections gracefully
-- [ ] Return consistent error response format:
-  ```json
-  { "error": "message", "code": "ERROR_CODE" }
-  ```
+- [ ] Handle uncaught exceptions and unhandled rejections gracefully
+- [ ] Consistent error response format: `{ "error": "message", "code": "ERROR_CODE" }`
 
 ---
 
