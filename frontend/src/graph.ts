@@ -6,7 +6,7 @@ import { detectLang, t, type Lang } from './i18n';
 
 declare global {
   interface Window {
-    __graphOrbit?: { pause: () => void; resume: () => void };
+    __graphOrbit?: { pause: () => void; resume: () => void; toggle: () => void };
   }
 }
 
@@ -367,7 +367,7 @@ function renderGraph(
       showKeywordConnection(answerA, answerB, kl.keywords, lang);
     })
     .onBackgroundClick(() => {
-      window.__graphOrbit?.pause();
+      window.__graphOrbit?.toggle();
       selectNode(null);
       if (selectedLinkKey !== null) {
         selectedLinkKey = null;
@@ -378,17 +378,70 @@ function renderGraph(
     });
 
   setTimeout(() => {
-    Graph.zoomToFit(800, 40);
+    Graph.zoomToFit(800, -500);
     setTimeout(() => {
-      const { x, y, z } = Graph.cameraPosition();
-      const distance = Math.sqrt(x * x + y * y + z * z);
-      let theta = Math.atan2(x, z);
+      let distance = 0;
+      let theta = 0;
       let intervalId: ReturnType<typeof setInterval> | null = null;
+      let spotlightTimeout: ReturnType<typeof setTimeout> | null = null;
+      let autoResume = false; // true only while a spotlight is completing
 
       const btn = document.getElementById('orbit-btn')!;
 
+      function doSpotlight(): void {
+        const candidates = answerNodes.filter((n) => n.text.trim().length > 0);
+        if (candidates.length === 0) {
+          startOrbit();
+          return;
+        }
+        const target = candidates[Math.floor(Math.random() * candidates.length)];
+        const pos = target as unknown as { x?: number; y?: number; z?: number };
+        const tx = pos.x ?? 0;
+        const ty = pos.y ?? 0;
+        const tz = pos.z ?? 0;
+
+        // Approach the node from the current camera direction, stopping close enough to read text
+        const { x: cx, y: cy, z: cz } = Graph.cameraPosition();
+        const dx = cx - tx;
+        const dy = cy - ty;
+        const dz = cz - tz;
+        const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        const CLOSE = 40;
+        Graph.cameraPosition(
+          { x: tx + (dx / d) * CLOSE, y: ty + (dy / d) * CLOSE, z: tz + (dz / d) * CLOSE },
+          { x: tx, y: ty, z: tz },
+          2000,
+        );
+
+        selectNode(target.id);
+        showAnswer(target, lang);
+
+        // After 10 s: clear selection, zoom back out, resume orbit
+        autoResume = true;
+        spotlightTimeout = setTimeout(() => {
+          autoResume = false;
+          selectNode(null);
+          document.getElementById('detail-content')!.innerHTML = '';
+          document.getElementById('sidebar-hint')!.textContent = t('graph.hint', lang);
+          Graph.zoomToFit(1500, -500);
+          spotlightTimeout = setTimeout(() => startOrbit(), 1600);
+        }, 10000);
+      }
+
+      function scheduleSpotlight(): void {
+        const delay = 5000 + Math.random() * 1000;
+        spotlightTimeout = setTimeout(() => {
+          if (!intervalId) return;
+          pauseOrbit();
+          doSpotlight();
+        }, delay);
+      }
+
       function startOrbit(): void {
         if (intervalId) return;
+        const { x, y, z } = Graph.cameraPosition();
+        distance = Math.sqrt(x * x + y * y + z * z);
+        theta = Math.atan2(x, z);
         intervalId = setInterval(() => {
           const phi = Math.PI / 2 + Math.sin(theta * 0.37) * (Math.PI / 3.5);
           Graph.cameraPosition({
@@ -399,21 +452,29 @@ function renderGraph(
           theta += Math.PI / 300;
         }, 10);
         btn.textContent = t('graph.orbit_pause', lang);
+        scheduleSpotlight();
       }
 
       function pauseOrbit(): void {
         if (intervalId) clearInterval(intervalId);
         intervalId = null;
+        autoResume = false;
+        if (spotlightTimeout) {
+          clearTimeout(spotlightTimeout);
+          spotlightTimeout = null;
+        }
         btn.textContent = t('graph.orbit_resume', lang);
       }
 
-      window.__graphOrbit = { pause: pauseOrbit, resume: startOrbit };
-      btn.addEventListener('click', () => {
-        if (intervalId) pauseOrbit();
+      function toggleOrbit(): void {
+        if (intervalId || autoResume) pauseOrbit();
         else startOrbit();
-      });
+      }
+
+      window.__graphOrbit = { pause: pauseOrbit, resume: startOrbit, toggle: toggleOrbit };
+      btn.addEventListener('click', toggleOrbit);
       startOrbit();
-    }, 800);
+    }, 1600);
   }, 500);
 }
 

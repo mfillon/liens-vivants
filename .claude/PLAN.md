@@ -84,16 +84,15 @@ A webapp where users submit mental map nodes (center concept + branches), data i
 
 ---
 
-## Step 6 — Add mini nodes
+## Step 6 — Add mini nodes ✓
 
-- [ ] Rename node => participant, branches => answers to have functional naming instead of technical
-- [ ] For each branch, add a mini-node, for connections, link the mini-nodes instead of the main ones
-- Stop here so I can test
-- [ ] To test: display each node in different colour
-- Stop here so I can test
-- [ ] Display icon on mini-node if there is an image, video or audio attached
-- Stop here so I can test
-- [ ] When auto-orbiting, sometimes, stop on a random mini-node, zoom and display details for 10 seconds
+- [x] Rename node => participant, branches => answers to have functional naming instead of technical
+- [x] For each branch, add a mini-node, for connections, link the mini-nodes instead of the main ones
+- [x] Display each node in a different colour (hub: orange, participant: blue, answer: purple)
+- [x] Thin black border on all nodes; white border + brighter bg on selected node; yellow link on selected connection
+- [x] Link cylinders shortened per type to avoid z-fighting with node sprites
+- [x] Display media icon on answer mini-nodes and participant nodes (🖼 / 🔊 / 🎬) when attachment present
+- [x] When auto-orbiting, sometimes stop on a random answer node, zoom close and display details for 10 seconds, then zoom back out and resume orbit; background click toggles orbit
 
 ---
 
