@@ -169,15 +169,15 @@ export function getProjectByUUID(uuid: string): Project | undefined {
   if (!project) return undefined;
   return {
     ...project,
-    branch_labels: selectBranchLabels.all(project.id) as BranchLabel[],
+    branch_labels: selectBranchLabels.all(project.id) as unknown as BranchLabel[],
   };
 }
 
 export function getAllProjects(): Array<Project & { submission_count: number }> {
-  const projects = selectAllProjects.all() as ProjectRow[];
+  const projects = selectAllProjects.all() as unknown as ProjectRow[];
   return projects.map((project) => ({
     ...project,
-    branch_labels: selectBranchLabels.all(project.id) as BranchLabel[],
+    branch_labels: selectBranchLabels.all(project.id) as unknown as BranchLabel[],
     submission_count: (selectNodeCountByProject.get(project.id) as { count: number }).count,
   }));
 }
@@ -221,18 +221,18 @@ export function getBranchById(branchId: number): Branch | undefined {
 }
 
 export function getAllNodes(): Node[] {
-  const nodes = selectNodes.all() as NodeRow[];
+  const nodes = selectNodes.all() as unknown as NodeRow[];
   return nodes.map((node) => ({
     ...node,
-    branches: selectBranches.all(node.id) as Branch[],
+    branches: selectBranches.all(node.id) as unknown as Branch[],
   }));
 }
 
 export function getNodesByProject(projectId: number): Node[] {
-  const nodes = selectNodesByProject.all(projectId) as NodeRow[];
+  const nodes = selectNodesByProject.all(projectId) as unknown as NodeRow[];
   return nodes.map((node) => ({
     ...node,
-    branches: selectBranches.all(node.id) as Branch[],
+    branches: selectBranches.all(node.id) as unknown as Branch[],
   }));
 }
 
@@ -241,16 +241,16 @@ export function getNodesByProject(projectId: number): Node[] {
 function computeConnections(projectId: number, newNodeId: number): void {
   deleteConnectionsForNode.run(newNodeId, newNodeId);
 
-  const newBranches = selectBranches.all(newNodeId) as Branch[];
+  const newBranches = selectBranches.all(newNodeId) as unknown as Branch[];
   const newKeywords = extractKeywordsFromTexts(newBranches.map((b) => b.text));
   if (newKeywords.size === 0) return;
 
   const otherNodes = db
     .prepare('SELECT * FROM nodes WHERE project_id = ? AND id != ?')
-    .all(projectId, newNodeId) as NodeRow[];
+    .all(projectId, newNodeId) as unknown as NodeRow[];
 
   for (const other of otherNodes) {
-    const otherBranches = selectBranches.all(other.id) as Branch[];
+    const otherBranches = selectBranches.all(other.id) as unknown as Branch[];
     const otherKeywords = extractKeywordsFromTexts(otherBranches.map((b) => b.text));
     const shared = intersect(newKeywords, otherKeywords);
     if (shared.length > 0) {
@@ -261,7 +261,7 @@ function computeConnections(projectId: number, newNodeId: number): void {
 
 export function getConnectionsByProject(projectId: number): Connection[] {
   type RawConnection = Omit<Connection, 'shared_keywords'> & { shared_keywords: string };
-  return (selectConnectionsByProject.all(projectId) as RawConnection[]).map((c) => ({
+  return (selectConnectionsByProject.all(projectId) as unknown as RawConnection[]).map((c) => ({
     ...c,
     shared_keywords: JSON.parse(c.shared_keywords) as string[],
   }));
@@ -271,7 +271,7 @@ export function recomputeAllConnections(): void {
   db.exec('DELETE FROM connections');
   const allNodes = db
     .prepare('SELECT * FROM nodes WHERE project_id IS NOT NULL')
-    .all() as NodeRow[];
+    .all() as unknown as NodeRow[];
   for (const node of allNodes) {
     if (node.project_id !== null) {
       computeConnections(node.project_id, node.id);

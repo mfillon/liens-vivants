@@ -253,4 +253,3 @@ function copyText(text: string): void {
 }
 
 window.copyText = copyText;
-

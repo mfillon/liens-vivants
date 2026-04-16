@@ -144,11 +144,13 @@ describe('POST /api/nodes', () => {
       .set(authHeader)
       .send({ center_label: 'Q' });
 
-    const res = await request(app).post('/api/nodes').send({
-      project_uuid: project.uuid,
-      center_text: 'answer',
-      branches: ['a', 'b', 'c', 'd', 'e', 'f'],
-    });
+    const res = await request(app)
+      .post('/api/nodes')
+      .send({
+        project_uuid: project.uuid,
+        center_text: 'answer',
+        branches: ['a', 'b', 'c', 'd', 'e', 'f'],
+      });
     expect(res.status).toBe(400);
   });
 
@@ -158,11 +160,13 @@ describe('POST /api/nodes', () => {
       .set(authHeader)
       .send({ center_label: 'Q' });
 
-    const res = await request(app).post('/api/nodes').send({
-      project_uuid: project.uuid,
-      center_text: 'My answer',
-      branches: ['Branch response A', 'Branch response B'],
-    });
+    const res = await request(app)
+      .post('/api/nodes')
+      .send({
+        project_uuid: project.uuid,
+        center_text: 'My answer',
+        branches: ['Branch response A', 'Branch response B'],
+      });
     expect(res.status).toBe(201);
     expect(typeof res.body.id).toBe('number');
     expect(res.body.branchIds).toHaveLength(2);
@@ -183,11 +187,13 @@ describe('GET /api/projects/:uuid/nodes', () => {
       .set(authHeader)
       .send({ center_label: 'Q' });
 
-    await request(app).post('/api/nodes').send({
-      project_uuid: project.uuid,
-      center_text: 'answer',
-      branches: ['branch text'],
-    });
+    await request(app)
+      .post('/api/nodes')
+      .send({
+        project_uuid: project.uuid,
+        center_text: 'answer',
+        branches: ['branch text'],
+      });
 
     const res = await request(app).get(`/api/projects/${project.uuid}/nodes`);
     expect(res.status).toBe(200);
@@ -268,9 +274,7 @@ describe('POST /api/admin/recompute-connections', () => {
   });
 
   it('returns 200 and ok: true', async () => {
-    const res = await request(app)
-      .post('/api/admin/recompute-connections')
-      .set(authHeader);
+    const res = await request(app).post('/api/admin/recompute-connections').set(authHeader);
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);
   });

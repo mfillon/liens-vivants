@@ -1,4 +1,4 @@
-import ForceGraph3D from '3d-force-graph';
+import ForceGraph3D, { type NodeObject } from '3d-force-graph';
 import SpriteText from 'three-spritetext';
 import type { Connection, Node, Project } from './types';
 import { branchesHtml, escapeHtml, truncate } from './utils';
@@ -99,37 +99,55 @@ function renderGraph(project: Project, nodes: Node[], connections: Connection[])
 
   const graphLinks: GraphLink[] = [...hubLinks, ...realLinks];
 
-  const Graph = ForceGraph3D()(container)
+  // Lookup maps give us typed access inside NodeObject/LinkObject callbacks
+  const nodeById = new Map<string | number, GraphNode>(graphNodes.map((n) => [n.id, n]));
+  const realLinkByPair = new Map<string, RealLink>(
+    realLinks.map((l) => [`${l.source}-${l.target}`, l]),
+  );
+
+  const Graph = new ForceGraph3D(container)
     .backgroundColor('#0f1117')
     .graphData({ nodes: graphNodes, links: graphLinks })
-    .nodeThreeObject((d) => {
-      const node = d as GraphNode;
-      const sprite = new SpriteText(truncate(node.center_text, node._isHub ? 20 : 15));
-      sprite.color = node._isHub ? '#ffffff' : '#e0e0e0';
-      sprite.textHeight = node._isHub ? 6 : 4;
-      sprite.backgroundColor = node._isHub ? '#f5a623' : '#4a90e2';
+    .nodeThreeObject((node: NodeObject) => {
+      const id = node.id;
+      const data = id !== undefined ? nodeById.get(id) : undefined;
+      const isHub = data !== undefined && '_isHub' in data;
+      const text = data?.center_text ?? '';
+      const sprite = new SpriteText(truncate(text, isHub ? 20 : 15));
+      sprite.color = isHub ? '#ffffff' : '#e0e0e0';
+      sprite.textHeight = isHub ? 6 : 4;
+      sprite.backgroundColor = isHub ? '#f5a623' : '#4a90e2';
       sprite.padding = 4;
       sprite.borderRadius = 4;
       return sprite;
     })
     .nodeThreeObjectExtend(false)
-    .linkColor((d) =>
-      (d as GraphLink)._isHubLink ? 'rgba(106,122,154,0.25)' : 'rgba(74,144,226,0.85)',
-    )
-    .linkWidth((d) => ((d as GraphLink)._isHubLink ? 0.3 : 1.5))
+    .linkColor((link) => ('keywords' in link ? 'rgba(74,144,226,0.85)' : 'rgba(106,122,154,0.25)'))
+    .linkWidth((link) => ('keywords' in link ? 1.5 : 0.3))
     .linkOpacity(1)
     .onNodeClick((node) => {
       window.__graphOrbit?.pause();
-      const n = node as GraphNode;
-      if (n._isHub) showHub(n as HubNode);
-      else showSingleNode(n as Node);
+      const id = node.id;
+      const data = id !== undefined ? nodeById.get(id) : undefined;
+      if (!data) return;
+      if ('_isHub' in data) showHub(data);
+      else showSingleNode(data);
     })
     .onLinkClick((link) => {
-      const l = link as RealLink;
-      if (!l._isHubLink) {
-        window.__graphOrbit?.pause();
-        showConnection(l.source as unknown as Node, l.target as unknown as Node, l.keywords);
-      }
+      if (!('keywords' in link)) return;
+      window.__graphOrbit?.pause();
+      const src = link.source;
+      const tgt = link.target;
+      const sourceId = typeof src === 'object' && src !== null ? src.id : src;
+      const targetId = typeof tgt === 'object' && tgt !== null ? tgt.id : tgt;
+      if (sourceId === undefined || targetId === undefined) return;
+      const realLink = realLinkByPair.get(`${sourceId}-${targetId}`);
+      if (!realLink) return;
+      const source = nodeById.get(sourceId);
+      const target = nodeById.get(targetId);
+      if (!source || '_isHub' in source) return;
+      if (!target || '_isHub' in target) return;
+      showConnection(source, target, realLink.keywords);
     })
     .onBackgroundClick(() => {
       window.__graphOrbit?.pause();
@@ -225,8 +243,6 @@ function showConnection(nodeA: Node, nodeB: Node, keywords: string[]): void {
       ${branchesHtml(nodeB.branches)}
     </div>`;
 }
-
-
 
 function showError(msg: string): void {
   const errorEl = document.getElementById('error')!;

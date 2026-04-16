@@ -92,7 +92,7 @@ app.get('/api/projects', basicAuth, (_req: Request, res: Response) => {
 });
 
 // Public: get project by UUID (for form rendering)
-app.get('/api/projects/:uuid', (req: Request, res: Response) => {
+app.get('/api/projects/:uuid', (req: Request<{ uuid: string }>, res: Response) => {
   const project = getProjectByUUID(req.params.uuid);
   if (!project) {
     res.status(404).json({ error: 'Project not found' });
@@ -102,7 +102,7 @@ app.get('/api/projects/:uuid', (req: Request, res: Response) => {
 });
 
 // Public: get all nodes for a project (for graph rendering)
-app.get('/api/projects/:uuid/nodes', (req: Request, res: Response) => {
+app.get('/api/projects/:uuid/nodes', (req: Request<{ uuid: string }>, res: Response) => {
   const project = getProjectByUUID(req.params.uuid);
   if (!project) {
     res.status(404).json({ error: 'Project not found' });
@@ -112,7 +112,7 @@ app.get('/api/projects/:uuid/nodes', (req: Request, res: Response) => {
 });
 
 // Public: get connections for a project
-app.get('/api/projects/:uuid/connections', (req: Request, res: Response) => {
+app.get('/api/projects/:uuid/connections', (req: Request<{ uuid: string }>, res: Response) => {
   const project = getProjectByUUID(req.params.uuid);
   if (!project) {
     res.status(404).json({ error: 'Project not found' });
@@ -155,19 +155,23 @@ app.post('/api/nodes', (req: Request, res: Response) => {
 });
 
 // Public: upload media for a branch
-app.post('/api/branches/:id/media', upload.single('file'), (req: Request, res: Response) => {
-  if (!req.file) {
-    res.status(400).json({ error: 'No file uploaded' });
-    return;
-  }
-  const branchId = parseInt(req.params.id, 10);
-  if (!getBranchById(branchId)) {
-    res.status(404).json({ error: 'Branch not found' });
-    return;
-  }
-  saveBranchMedia(branchId, req.file.filename, req.file.mimetype);
-  res.status(201).json({ path: `/uploads/${req.file.filename}` });
-});
+app.post(
+  '/api/branches/:id/media',
+  upload.single('file'),
+  (req: Request<{ id: string }>, res: Response) => {
+    if (!req.file) {
+      res.status(400).json({ error: 'No file uploaded' });
+      return;
+    }
+    const branchId = parseInt(req.params.id, 10);
+    if (!getBranchById(branchId)) {
+      res.status(404).json({ error: 'Branch not found' });
+      return;
+    }
+    saveBranchMedia(branchId, req.file.filename, req.file.mimetype);
+    res.status(201).json({ path: `/uploads/${req.file.filename}` });
+  },
+);
 
 // Multer error handler
 app.use((err: Error & { status?: number }, _req: Request, res: Response, _next: NextFunction) => {

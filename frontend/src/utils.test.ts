@@ -7,9 +7,7 @@ import { branchesHtml, escapeHtml, mediaHtml, truncate } from './utils';
 
 describe('escapeHtml', () => {
   it('escapes angle brackets', () => {
-    expect(escapeHtml('<script>alert(1)</script>')).toBe(
-      '&lt;script&gt;alert(1)&lt;/script&gt;',
-    );
+    expect(escapeHtml('<script>alert(1)</script>')).toBe('&lt;script&gt;alert(1)&lt;/script&gt;');
   });
 
   it('escapes ampersands', () => {
@@ -132,7 +130,12 @@ describe('branchesHtml', () => {
   });
 
   it('includes media HTML for branches with attachments', () => {
-    const b = branch({ position: 1, text: 'with image', media_path: 'img.jpg', media_type: 'image/jpeg' });
+    const b = branch({
+      position: 1,
+      text: 'with image',
+      media_path: 'img.jpg',
+      media_type: 'image/jpeg',
+    });
     const html = branchesHtml([b]);
     expect(html).toContain('<img src="/uploads/img.jpg"');
   });
