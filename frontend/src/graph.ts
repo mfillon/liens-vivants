@@ -111,6 +111,16 @@ function answerId(nodeId: number, position: number): string {
   return `answer-${nodeId}-${position}`;
 }
 
+function extractLinkIds(link: object): [string | number, string | number] | null {
+  const src = (link as { source: unknown }).source;
+  const tgt = (link as { target: unknown }).target;
+  const rawSrcId = typeof src === 'object' && src !== null ? (src as { id: unknown }).id : src;
+  const rawTgtId = typeof tgt === 'object' && tgt !== null ? (tgt as { id: unknown }).id : tgt;
+  if (typeof rawSrcId !== 'string' && typeof rawSrcId !== 'number') return null;
+  if (typeof rawTgtId !== 'string' && typeof rawTgtId !== 'number') return null;
+  return [rawSrcId, rawTgtId];
+}
+
 // ── Render ─────────────────────────────────────────────────────────────────
 
 function renderGraph(
@@ -191,6 +201,71 @@ function renderGraph(
     keywordLinks.map((l) => [`${l.source}-${l.target}`, l]),
   );
 
+  // ── Selection state
+  let selectedNodeId: string | number | null = null;
+  let selectedLinkKey: string | null = null;
+  const spriteByNodeId = new Map<string | number, SpriteText>();
+
+  function applyNodeStyle(sprite: SpriteText, data: GraphNode, selected: boolean): void {
+    if (data._type === 'hub') {
+      sprite.color = '#ffffff';
+      sprite.textHeight = 6;
+      sprite.backgroundColor = selected ? '#ffb83f' : '#f5a623';
+      sprite.padding = 4;
+      sprite.borderRadius = 4;
+      sprite.borderWidth = selected ? 1.5 : 0.5;
+      sprite.borderColor = selected ? '#ffffff' : 'rgba(0,0,0,0.8)';
+    } else if (data._type === 'participant') {
+      sprite.color = '#e0e0e0';
+      sprite.textHeight = 4;
+      sprite.backgroundColor = selected ? '#6aa8f5' : '#4a90e2';
+      sprite.padding = 4;
+      sprite.borderRadius = 4;
+      sprite.borderWidth = selected ? 1.5 : 0.5;
+      sprite.borderColor = selected ? '#ffffff' : 'rgba(0,0,0,0.8)';
+    } else {
+      sprite.color = '#d0d0d0';
+      sprite.textHeight = 2.5;
+      sprite.backgroundColor = selected ? '#7b68b5' : '#5b4a8e';
+      sprite.padding = 3;
+      sprite.borderRadius = 3;
+      sprite.borderWidth = selected ? 1 : 0.5;
+      sprite.borderColor = selected ? '#ffffff' : 'rgba(0,0,0,0.8)';
+    }
+  }
+
+  function getLinkColor(link: object): string {
+    const l = link as GraphLink;
+    if (l._type === 'keyword') {
+      const ids = extractLinkIds(link);
+      if (ids && selectedLinkKey === `${ids[0]}-${ids[1]}`) return '#ffee44';
+      return 'rgba(74,144,226,0.85)';
+    }
+    if (l._type === 'participant-answer') return 'rgba(180,140,255,0.55)';
+    return 'rgba(106,122,154,0.2)';
+  }
+
+  function getLinkWidth(link: object): number {
+    const l = link as GraphLink;
+    if (l._type === 'keyword') return 1.5;
+    if (l._type === 'participant-answer') return 0.8;
+    return 0.3;
+  }
+
+  function selectNode(id: string | number | null): void {
+    if (selectedNodeId !== null) {
+      const prevSprite = spriteByNodeId.get(selectedNodeId);
+      const prevData = nodeById.get(selectedNodeId);
+      if (prevSprite && prevData) applyNodeStyle(prevSprite, prevData, false);
+    }
+    selectedNodeId = id;
+    if (id !== null) {
+      const sprite = spriteByNodeId.get(id);
+      const data = nodeById.get(id);
+      if (sprite && data) applyNodeStyle(sprite, data, true);
+    }
+  }
+
   // ── ForceGraph3D
   const Graph = new ForceGraph3D(container)
     .backgroundColor('#0f1117')
@@ -200,54 +275,61 @@ function renderGraph(
       const data = id !== undefined ? nodeById.get(id) : undefined;
       if (!data) return new SpriteText('?');
 
-      if (data._type === 'hub') {
-        const sprite = new SpriteText(truncate(data.participant_name, 20));
-        sprite.color = '#ffffff';
-        sprite.textHeight = 6;
-        sprite.backgroundColor = '#f5a623';
-        sprite.padding = 4;
-        sprite.borderRadius = 4;
-        return sprite;
-      }
+      const text =
+        data._type === 'hub'
+          ? truncate(data.participant_name, 20)
+          : data._type === 'participant'
+            ? truncate(data.participant_name, 15)
+            : truncate(data.text, 18);
 
-      if (data._type === 'participant') {
-        const sprite = new SpriteText(truncate(data.participant_name, 15));
-        sprite.color = '#e0e0e0';
-        sprite.textHeight = 4;
-        sprite.backgroundColor = '#4a90e2';
-        sprite.padding = 4;
-        sprite.borderRadius = 4;
-        return sprite;
-      }
-
-      // answer mini-node
-      const sprite = new SpriteText(truncate(data.text, 18));
-      sprite.color = '#d0d0d0';
-      sprite.textHeight = 2.5;
-      sprite.backgroundColor = '#5b4a8e';
-      sprite.padding = 3;
-      sprite.borderRadius = 3;
+      const sprite = new SpriteText(text);
+      applyNodeStyle(sprite, data, false);
+      sprite.renderOrder = 1;
+      spriteByNodeId.set(data.id, sprite);
       return sprite;
     })
     .nodeThreeObjectExtend(false)
-    .linkColor((link) => {
-      const l = link as GraphLink;
-      if (l._type === 'keyword') return 'rgba(74,144,226,0.85)';
-      if (l._type === 'participant-answer') return 'rgba(180,140,255,0.55)';
-      return 'rgba(106,122,154,0.2)';
-    })
-    .linkWidth((link) => {
-      const l = link as GraphLink;
-      if (l._type === 'keyword') return 1.5;
-      if (l._type === 'participant-answer') return 0.8;
-      return 0.3;
-    })
+    .linkColor(getLinkColor)
+    .linkWidth(getLinkWidth)
     .linkOpacity(1)
+    .linkPositionUpdate((obj, { start, end }, link) => {
+      const l = link as GraphLink;
+      if (l._type === 'hub') return false;
+      const SHRINK = l._type === 'keyword' ? 8 : 4;
+      const dx = end.x - start.x;
+      const dy = end.y - start.y;
+      const dz = end.z - start.z;
+      const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      if (len < 1) return false;
+      const nx = dx / len;
+      const ny = dy / len;
+      const nz = dz / len;
+      // Midpoint is unchanged by symmetric shrink
+      obj.position.set((start.x + end.x) / 2, (start.y + end.y) / 2, (start.z + end.z) / 2);
+      // Rotate local Y axis onto link direction: cross(0,1,0) × (nx,ny,nz) = (nz, 0, -nx)
+      const cx = nz;
+      const cz = -nx;
+      const cLen = Math.sqrt(cx * cx + cz * cz);
+      if (cLen < 1e-6) {
+        obj.quaternion.set(ny > 0 ? 0 : 1, 0, 0, ny > 0 ? 1 : 0);
+      } else {
+        const angle = Math.acos(Math.max(-1, Math.min(1, ny)));
+        const s = Math.sin(angle / 2);
+        obj.quaternion.set((cx / cLen) * s, 0, (cz / cLen) * s, Math.cos(angle / 2));
+      }
+      obj.scale.y = Math.max(0, len - 2 * SHRINK);
+      return true;
+    })
     .onNodeClick((node) => {
       window.__graphOrbit?.pause();
       const id = node.id;
       const data = id !== undefined ? nodeById.get(id) : undefined;
       if (!data) return;
+      if (selectedLinkKey !== null) {
+        selectedLinkKey = null;
+        Graph.linkColor(getLinkColor);
+      }
+      selectNode(id as string | number);
       if (data._type === 'hub') showHub(data, lang);
       else if (data._type === 'participant') showParticipant(data, lang);
       else showAnswer(data, lang);
@@ -256,24 +338,27 @@ function renderGraph(
       const l = link as GraphLink;
       if (l._type !== 'keyword') return;
       window.__graphOrbit?.pause();
-      const src = (link as { source: unknown }).source;
-      const tgt = (link as { target: unknown }).target;
-      const rawSrcId = typeof src === 'object' && src !== null ? (src as { id: unknown }).id : src;
-      const rawTgtId = typeof tgt === 'object' && tgt !== null ? (tgt as { id: unknown }).id : tgt;
-      if (typeof rawSrcId !== 'string' && typeof rawSrcId !== 'number') return;
-      if (typeof rawTgtId !== 'string' && typeof rawTgtId !== 'number') return;
-      const sourceId: string | number = rawSrcId;
-      const targetId: string | number = rawTgtId;
+      const ids = extractLinkIds(link);
+      if (!ids) return;
+      const [sourceId, targetId] = ids;
       const kl = keywordLinkByPair.get(`${sourceId}-${targetId}`);
       if (!kl) return;
       const answerA = nodeById.get(sourceId);
       const answerB = nodeById.get(targetId);
       if (!answerA || answerA._type !== 'answer') return;
       if (!answerB || answerB._type !== 'answer') return;
+      selectNode(null);
+      selectedLinkKey = `${sourceId}-${targetId}`;
+      Graph.linkColor(getLinkColor);
       showKeywordConnection(answerA, answerB, kl.keywords, lang);
     })
     .onBackgroundClick(() => {
       window.__graphOrbit?.pause();
+      selectNode(null);
+      if (selectedLinkKey !== null) {
+        selectedLinkKey = null;
+        Graph.linkColor(getLinkColor);
+      }
       document.getElementById('detail-content')!.innerHTML = '';
       document.getElementById('sidebar-hint')!.textContent = t('graph.hint', lang);
     });
