@@ -52,7 +52,8 @@ type NodeRow = Omit<Node, 'branches'>;
 
 // ── Database setup ─────────────────────────────────────────────────────────
 
-const db = new DatabaseSync(path.join(__dirname, '..', 'data.db'));
+const DB_PATH = process.env.DB_PATH ?? path.join(__dirname, '..', 'data.db');
+const db = new DatabaseSync(DB_PATH);
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS projects (
@@ -276,4 +277,11 @@ export function recomputeAllConnections(): void {
       computeConnections(node.project_id, node.id);
     }
   }
+}
+
+/** Truncate all data — only call from tests. */
+export function _resetForTests(): void {
+  db.exec(
+    'DELETE FROM connections; DELETE FROM branches; DELETE FROM nodes; DELETE FROM project_branch_labels; DELETE FROM projects;',
+  );
 }

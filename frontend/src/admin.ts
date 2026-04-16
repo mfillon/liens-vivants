@@ -1,5 +1,5 @@
-import type { Branch, Node, Project } from './types';
-import { escapeHtml } from './utils';
+import type { Node, Project } from './types';
+import { escapeHtml, mediaHtml } from './utils';
 
 declare global {
   interface Window {
@@ -254,13 +254,3 @@ function copyText(text: string): void {
 
 window.copyText = copyText;
 
-function mediaHtml(branch: Branch): string {
-  if (!branch.media_path) return '';
-  const src = `/uploads/${branch.media_path}`;
-  if (branch.media_type?.startsWith('image/')) return `<img src="${src}" class="branch-media">`;
-  if (branch.media_type?.startsWith('audio/'))
-    return `<audio controls src="${src}" class="branch-media"></audio>`;
-  if (branch.media_type?.startsWith('video/'))
-    return `<video controls src="${src}" class="branch-media"></video>`;
-  return '';
-}

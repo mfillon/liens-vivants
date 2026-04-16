@@ -1,7 +1,7 @@
 import ForceGraph3D from '3d-force-graph';
 import SpriteText from 'three-spritetext';
-import type { Branch, Connection, Node, Project } from './types';
-import { escapeHtml, truncate } from './utils';
+import type { Connection, Node, Project } from './types';
+import { branchesHtml, escapeHtml, truncate } from './utils';
 
 declare global {
   interface Window {
@@ -226,30 +226,6 @@ function showConnection(nodeA: Node, nodeB: Node, keywords: string[]): void {
     </div>`;
 }
 
-function branchesHtml(branches: Branch[]): string {
-  if (!branches?.length) return '<p class="empty">No branches</p>';
-  return (
-    '<ul>' +
-    branches
-      .map(
-        (b) =>
-          `<li><span class="position">${b.position}.</span> ${escapeHtml(b.text)}${mediaHtml(b)}</li>`,
-      )
-      .join('') +
-    '</ul>'
-  );
-}
-
-function mediaHtml(branch: Branch): string {
-  if (!branch.media_path) return '';
-  const src = `/uploads/${branch.media_path}`;
-  if (branch.media_type?.startsWith('image/')) return `<img src="${src}" class="branch-media">`;
-  if (branch.media_type?.startsWith('audio/'))
-    return `<audio controls src="${src}" class="branch-media"></audio>`;
-  if (branch.media_type?.startsWith('video/'))
-    return `<video controls src="${src}" class="branch-media"></video>`;
-  return '';
-}
 
 
 function showError(msg: string): void {

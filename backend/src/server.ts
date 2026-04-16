@@ -197,6 +197,10 @@ if (process.env.NODE_ENV === 'production') {
   app.get('/graph/:uuid', (_req, res) => res.sendFile(path.join(distDir, 'graph.html')));
 }
 
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-});
+export { app };
+
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}`);
+  });
+}

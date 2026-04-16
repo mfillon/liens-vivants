@@ -115,7 +115,10 @@ A webapp where users submit mental map nodes (center concept + branches), data i
 - [x] Backend: `keywords.test.ts` — 11 tests for `extractKeywords`, `extractKeywordsFromTexts`, `intersect`
 - [x] Frontend: `utils.ts` extracted (`escapeHtml`, `truncate`); `utils.test.ts` — 8 tests with happy-dom
 - [x] Root `pnpm test` runs both workspaces
-- [ ] Supertest for API integration tests
+- [x] Backend: `db.test.ts` — 31 tests for all DB functions (`createProject`, `getProjectByUUID`, `getAllProjects`, `createNode`, `getAllNodes`, `getNodesByProject`, `getBranchById`, `saveBranchMedia`, `getConnectionsByProject`, `recomputeAllConnections`)
+- [x] Backend: `server.test.ts` — 25 Supertest tests for all Express routes (auth, CRUD, connections, media upload errors)
+- [x] `vitest.config.ts` in backend: `pool: forks`, `execArgv: --experimental-sqlite`, test env vars (`DB_PATH=:memory:`, admin credentials, `NODE_ENV=test`)
+- [x] Frontend: `mediaHtml` + `branchesHtml` extracted to `utils.ts`; 21 tests total in `utils.test.ts`
 - [ ] Coverage threshold
 
 ---
