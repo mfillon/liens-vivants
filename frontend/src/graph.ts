@@ -111,6 +111,19 @@ function answerId(nodeId: number, position: number): string {
   return `answer-${nodeId}-${position}`;
 }
 
+function mediaIcon(mediaType: string | null): string {
+  if (!mediaType) return '';
+  if (mediaType.startsWith('image/')) return '🖼';
+  if (mediaType.startsWith('audio/')) return '🔊';
+  if (mediaType.startsWith('video/')) return '🎬';
+  return '📎';
+}
+
+function participantMediaIcons(branches: Branch[]): string {
+  const icons = [...new Set(branches.map((b) => mediaIcon(b.media_type)).filter(Boolean))];
+  return icons.length > 0 ? '  ' + icons.join(' ') : '';
+}
+
 function extractLinkIds(link: object): [string | number, string | number] | null {
   const src = (link as { source: unknown }).source;
   const tgt = (link as { target: unknown }).target;
@@ -119,6 +132,34 @@ function extractLinkIds(link: object): [string | number, string | number] | null
   if (typeof rawSrcId !== 'string' && typeof rawSrcId !== 'number') return null;
   if (typeof rawTgtId !== 'string' && typeof rawTgtId !== 'number') return null;
   return [rawSrcId, rawTgtId];
+}
+
+function applyNodeStyle(sprite: SpriteText, data: GraphNode, selected: boolean): void {
+  if (data._type === 'hub') {
+    sprite.color = '#ffffff';
+    sprite.textHeight = 6;
+    sprite.backgroundColor = selected ? '#ffb83f' : '#f5a623';
+    sprite.padding = 4;
+    sprite.borderRadius = 4;
+    sprite.borderWidth = selected ? 1.5 : 0.5;
+    sprite.borderColor = selected ? '#ffffff' : 'rgba(0,0,0,0.8)';
+  } else if (data._type === 'participant') {
+    sprite.color = '#e0e0e0';
+    sprite.textHeight = 4;
+    sprite.backgroundColor = selected ? '#6aa8f5' : '#4a90e2';
+    sprite.padding = 4;
+    sprite.borderRadius = 4;
+    sprite.borderWidth = selected ? 1.5 : 0.5;
+    sprite.borderColor = selected ? '#ffffff' : 'rgba(0,0,0,0.8)';
+  } else {
+    sprite.color = '#d0d0d0';
+    sprite.textHeight = 2.5;
+    sprite.backgroundColor = selected ? '#7b68b5' : '#5b4a8e';
+    sprite.padding = 3;
+    sprite.borderRadius = 3;
+    sprite.borderWidth = selected ? 1 : 0.5;
+    sprite.borderColor = selected ? '#ffffff' : 'rgba(0,0,0,0.8)';
+  }
 }
 
 // ── Render ─────────────────────────────────────────────────────────────────
@@ -206,34 +247,6 @@ function renderGraph(
   let selectedLinkKey: string | null = null;
   const spriteByNodeId = new Map<string | number, SpriteText>();
 
-  function applyNodeStyle(sprite: SpriteText, data: GraphNode, selected: boolean): void {
-    if (data._type === 'hub') {
-      sprite.color = '#ffffff';
-      sprite.textHeight = 6;
-      sprite.backgroundColor = selected ? '#ffb83f' : '#f5a623';
-      sprite.padding = 4;
-      sprite.borderRadius = 4;
-      sprite.borderWidth = selected ? 1.5 : 0.5;
-      sprite.borderColor = selected ? '#ffffff' : 'rgba(0,0,0,0.8)';
-    } else if (data._type === 'participant') {
-      sprite.color = '#e0e0e0';
-      sprite.textHeight = 4;
-      sprite.backgroundColor = selected ? '#6aa8f5' : '#4a90e2';
-      sprite.padding = 4;
-      sprite.borderRadius = 4;
-      sprite.borderWidth = selected ? 1.5 : 0.5;
-      sprite.borderColor = selected ? '#ffffff' : 'rgba(0,0,0,0.8)';
-    } else {
-      sprite.color = '#d0d0d0';
-      sprite.textHeight = 2.5;
-      sprite.backgroundColor = selected ? '#7b68b5' : '#5b4a8e';
-      sprite.padding = 3;
-      sprite.borderRadius = 3;
-      sprite.borderWidth = selected ? 1 : 0.5;
-      sprite.borderColor = selected ? '#ffffff' : 'rgba(0,0,0,0.8)';
-    }
-  }
-
   function getLinkColor(link: object): string {
     const l = link as GraphLink;
     if (l._type === 'keyword') {
@@ -275,12 +288,13 @@ function renderGraph(
       const data = id !== undefined ? nodeById.get(id) : undefined;
       if (!data) return new SpriteText('?');
 
+      const icon = data._type === 'answer' ? mediaIcon(data.media_type) : '';
       const text =
         data._type === 'hub'
           ? truncate(data.participant_name, 20)
           : data._type === 'participant'
-            ? truncate(data.participant_name, 15)
-            : truncate(data.text, 18);
+            ? truncate(data.participant_name, 15) + participantMediaIcons(data.branches)
+            : truncate(data.text, 18) + (icon ? `  ${icon}` : '');
 
       const sprite = new SpriteText(text);
       applyNodeStyle(sprite, data, false);
