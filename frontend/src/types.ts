@@ -37,7 +37,9 @@ export interface Connection {
   id: number;
   project_id: number;
   node_id_a: number;
+  branch_position_a: number | null;
   node_id_b: number;
+  branch_position_b: number | null;
   shared_keywords: string[];
   created_at: string;
 }

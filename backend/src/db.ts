@@ -42,7 +42,9 @@ export interface Connection {
   id: number;
   project_id: number;
   node_id_a: number;
+  branch_position_a: number | null;
   node_id_b: number;
+  branch_position_b: number | null;
   shared_keywords: string[];
   created_at: string;
 }
@@ -123,6 +125,16 @@ try {
 } catch {
   /* column already exists */
 }
+try {
+  db.exec('ALTER TABLE connections ADD COLUMN branch_position_a INTEGER');
+} catch {
+  /* column already exists */
+}
+try {
+  db.exec('ALTER TABLE connections ADD COLUMN branch_position_b INTEGER');
+} catch {
+  /* column already exists */
+}
 
 // ── Prepared statements ────────────────────────────────────────────────────
 
@@ -152,7 +164,7 @@ const updateBranchMedia = db.prepare(
 );
 const selectBranchById = db.prepare('SELECT * FROM branches WHERE id = ?');
 const insertConnection = db.prepare(
-  'INSERT INTO connections (project_id, node_id_a, node_id_b, shared_keywords) VALUES (?, ?, ?, ?)',
+  'INSERT INTO connections (project_id, node_id_a, branch_position_a, node_id_b, branch_position_b, shared_keywords) VALUES (?, ?, ?, ?, ?, ?)',
 );
 const deleteConnectionsForNode = db.prepare(
   'DELETE FROM connections WHERE node_id_a = ? OR node_id_b = ?',
@@ -273,8 +285,7 @@ function computeConnections(projectId: number, newNodeId: number): void {
   deleteConnectionsForNode.run(newNodeId, newNodeId);
 
   const newBranches = selectBranches.all(newNodeId) as unknown as Branch[];
-  const newKeywords = extractKeywordsFromTexts(newBranches.map((b) => b.text));
-  if (newKeywords.size === 0) return;
+  if (newBranches.length === 0) return;
 
   const otherNodes = db
     .prepare('SELECT * FROM nodes WHERE project_id = ? AND id != ?')
@@ -282,10 +293,25 @@ function computeConnections(projectId: number, newNodeId: number): void {
 
   for (const other of otherNodes) {
     const otherBranches = selectBranches.all(other.id) as unknown as Branch[];
-    const otherKeywords = extractKeywordsFromTexts(otherBranches.map((b) => b.text));
-    const shared = intersect(newKeywords, otherKeywords);
-    if (shared.length > 0) {
-      insertConnection.run(projectId, newNodeId, other.id, JSON.stringify(shared));
+
+    for (const branchA of newBranches) {
+      const keywordsA = extractKeywordsFromTexts([branchA.text]);
+      if (keywordsA.size === 0) continue;
+
+      for (const branchB of otherBranches) {
+        const keywordsB = extractKeywordsFromTexts([branchB.text]);
+        const shared = intersect(keywordsA, keywordsB);
+        if (shared.length > 0) {
+          insertConnection.run(
+            projectId,
+            newNodeId,
+            branchA.position,
+            other.id,
+            branchB.position,
+            JSON.stringify(shared),
+          );
+        }
+      }
     }
   }
 }
@@ -294,6 +320,8 @@ export function getConnectionsByProject(projectId: number): Connection[] {
   type RawConnection = Omit<Connection, 'shared_keywords'> & { shared_keywords: string };
   return (selectConnectionsByProject.all(projectId) as unknown as RawConnection[]).map((c) => ({
     ...c,
+    branch_position_a: c.branch_position_a ?? null,
+    branch_position_b: c.branch_position_b ?? null,
     shared_keywords: JSON.parse(c.shared_keywords) as string[],
   }));
 }

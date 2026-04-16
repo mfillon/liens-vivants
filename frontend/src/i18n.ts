@@ -84,6 +84,8 @@ const translations = {
     'graph.error.no_uuid': 'No project UUID in URL.',
     'graph.error.not_found': 'Project not found.',
     'graph.error.load_failed': 'Failed to load graph data.',
+    'graph.participant': 'Participant',
+    'graph.answer': 'Answer',
   },
   fr: {
     // Page
@@ -160,6 +162,8 @@ const translations = {
     'graph.error.no_uuid': 'Aucun UUID de projet dans l\u2019URL.',
     'graph.error.not_found': 'Projet introuvable.',
     'graph.error.load_failed': 'Impossible de charger les donn\u00e9es du graphe.',
+    'graph.participant': 'Participant\u00b7e',
+    'graph.answer': 'R\u00e9ponse',
   },
 } as const;
 

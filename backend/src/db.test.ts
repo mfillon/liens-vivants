@@ -166,6 +166,30 @@ describe('getConnectionsByProject / computeConnections (via createNode)', () => 
     expect(connections[0].shared_keywords).toContain('ocean');
   });
 
+  it('records branch positions on connections', () => {
+    const { id: projectId } = createProject('Q', []);
+    createNode(projectId, 'Alice', ['climate ocean']);
+    createNode(projectId, 'Bob', ['ocean climate']);
+    const [conn] = getConnectionsByProject(projectId);
+    expect(conn.branch_position_a).toBe(1);
+    expect(conn.branch_position_b).toBe(1);
+  });
+
+  it('creates per-branch connections when multiple branches match', () => {
+    const { id: projectId } = createProject('Q', []);
+    // Alice: branch 1 = ocean, branch 2 = forest
+    // Bob:   branch 1 = ocean, branch 2 = forest
+    createNode(projectId, 'Alice', ['ocean waves', 'forest trees']);
+    createNode(projectId, 'Bob', ['ocean deep', 'forest nature']);
+    const connections = getConnectionsByProject(projectId);
+    // Expect one connection per matching branch pair: (1,1) and (2,2)
+    expect(connections).toHaveLength(2);
+    const pairs = connections
+      .map((c) => `${c.branch_position_a}-${c.branch_position_b}`)
+      .toSorted();
+    expect(pairs).toEqual(['1-1', '2-2']);
+  });
+
   it('creates no connection when nodes share no keywords', () => {
     const { id: projectId } = createProject('Q', []);
     createNode(projectId, 'Alice', ['apple banana']);

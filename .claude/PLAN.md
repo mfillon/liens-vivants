@@ -86,10 +86,13 @@ A webapp where users submit mental map nodes (center concept + branches), data i
 
 ## Step 6 — Add mini nodes
 
-- [ ] Rename node => participant, branches => answers to be have functionnal namne
+- [ ] Rename node => participant, branches => answers to have functional naming instead of technical
 - [ ] For each branch, add a mini-node, for connections, link the mini-nodes instead of the main ones
+- Stop here so I can test
 - [ ] To test: display each node in different colour
+- Stop here so I can test
 - [ ] Display icon on mini-node if there is an image, video or audio attached
+- Stop here so I can test
 - [ ] When auto-orbiting, sometimes, stop on a random mini-node, zoom and display details for 10 seconds
 
 ---

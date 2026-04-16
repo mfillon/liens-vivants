@@ -270,7 +270,7 @@ describe('GET /api/projects/:uuid/connections', () => {
     expect(res.status).toBe(404);
   });
 
-  it('returns connections with parsed shared_keywords', async () => {
+  it('returns connections with parsed shared_keywords and branch positions', async () => {
     const { body: project } = await request(app)
       .post('/api/projects')
       .set(authHeader)
@@ -287,6 +287,8 @@ describe('GET /api/projects/:uuid/connections', () => {
     expect(res.status).toBe(200);
     expect(res.body).toHaveLength(1);
     expect(Array.isArray(res.body[0].shared_keywords)).toBe(true);
+    expect(res.body[0].branch_position_a).toBe(1);
+    expect(res.body[0].branch_position_b).toBe(1);
   });
 });
 
