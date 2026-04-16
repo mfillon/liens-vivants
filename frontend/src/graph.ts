@@ -134,7 +134,17 @@ function extractLinkIds(link: object): [string | number, string | number] | null
   return [rawSrcId, rawTgtId];
 }
 
-function applyNodeStyle(sprite: SpriteText, data: GraphNode, selected: boolean): void {
+// Golden-angle hue distribution: each successive index is ~137.5° away, maximising perceptual distance.
+function participantHue(colorIndex: number): number {
+  return (colorIndex * 137.5) % 360;
+}
+
+function applyNodeStyle(
+  sprite: SpriteText,
+  data: GraphNode,
+  selected: boolean,
+  colorIndex = 0,
+): void {
   if (data._type === 'hub') {
     sprite.color = '#ffffff';
     sprite.textHeight = 6;
@@ -144,17 +154,19 @@ function applyNodeStyle(sprite: SpriteText, data: GraphNode, selected: boolean):
     sprite.borderWidth = selected ? 1.5 : 0.5;
     sprite.borderColor = selected ? '#ffffff' : 'rgba(0,0,0,0.8)';
   } else if (data._type === 'participant') {
+    const h = participantHue(colorIndex);
     sprite.color = '#e0e0e0';
     sprite.textHeight = 4;
-    sprite.backgroundColor = selected ? '#6aa8f5' : '#4a90e2';
+    sprite.backgroundColor = selected ? `hsl(${h}, 75%, 63%)` : `hsl(${h}, 65%, 48%)`;
     sprite.padding = 4;
     sprite.borderRadius = 4;
     sprite.borderWidth = selected ? 1.5 : 0.5;
     sprite.borderColor = selected ? '#ffffff' : 'rgba(0,0,0,0.8)';
   } else {
+    const h = participantHue(colorIndex);
     sprite.color = '#d0d0d0';
     sprite.textHeight = 2.5;
-    sprite.backgroundColor = selected ? '#7b68b5' : '#5b4a8e';
+    sprite.backgroundColor = selected ? `hsl(${h}, 65%, 53%)` : `hsl(${h}, 50%, 38%)`;
     sprite.padding = 3;
     sprite.borderRadius = 3;
     sprite.borderWidth = selected ? 1 : 0.5;
@@ -242,6 +254,15 @@ function renderGraph(
     keywordLinks.map((l) => [`${l.source}-${l.target}`, l]),
   );
 
+  // Per-participant colour index (assigned by arrival order)
+  const participantColorIndex = new Map<number, number>(participantNodes.map((p, i) => [p.id, i]));
+
+  function getColorIndex(data: GraphNode): number {
+    if (data._type === 'participant') return participantColorIndex.get(data.id) ?? 0;
+    if (data._type === 'answer') return participantColorIndex.get(data.nodeId) ?? 0;
+    return 0;
+  }
+
   // ── Selection state
   let selectedNodeId: string | number | null = null;
   let selectedLinkKey: string | null = null;
@@ -269,13 +290,14 @@ function renderGraph(
     if (selectedNodeId !== null) {
       const prevSprite = spriteByNodeId.get(selectedNodeId);
       const prevData = nodeById.get(selectedNodeId);
-      if (prevSprite && prevData) applyNodeStyle(prevSprite, prevData, false);
+      if (prevSprite && prevData)
+        applyNodeStyle(prevSprite, prevData, false, getColorIndex(prevData));
     }
     selectedNodeId = id;
     if (id !== null) {
       const sprite = spriteByNodeId.get(id);
       const data = nodeById.get(id);
-      if (sprite && data) applyNodeStyle(sprite, data, true);
+      if (sprite && data) applyNodeStyle(sprite, data, true, getColorIndex(data));
     }
   }
 
@@ -297,7 +319,7 @@ function renderGraph(
             : truncate(data.text, 18) + (icon ? `  ${icon}` : '');
 
       const sprite = new SpriteText(text);
-      applyNodeStyle(sprite, data, false);
+      applyNodeStyle(sprite, data, false, getColorIndex(data));
       sprite.renderOrder = 1;
       spriteByNodeId.set(data.id, sprite);
       return sprite;
