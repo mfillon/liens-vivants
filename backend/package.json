@@ -3,14 +3,23 @@
   "version": "1.0.0",
   "description": "Express REST API for Liens Vivants",
   "license": "GPL-3.0-only",
-  "main": "src/server.js",
+  "main": "dist/server.js",
   "scripts": {
-    "start": "node --experimental-sqlite src/server.js",
-    "dev": "node --experimental-sqlite --watch src/server.js"
+    "start": "node --experimental-sqlite dist/server.js",
+    "build": "tsc",
+    "dev": "NODE_OPTIONS='--experimental-sqlite' tsx watch src/server.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
     "express": "^4.18.3",
     "multer": "^2.1.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/multer": "^1.4.12",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0"
   }
 }

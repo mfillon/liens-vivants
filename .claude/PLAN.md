@@ -51,7 +51,7 @@ A webapp where users submit mental map nodes (center concept + branches), data i
 
 ---
 
-## Step 4 — Frontend build pipeline ✓
+## Step 1T (Technical) — Frontend build pipeline ✓
 
 - [x] pnpm workspaces monorepo (`frontend/`, `backend/`)
 - [x] Vite MPA config: `submit.html`, `admin.html`, `graph.html` as separate entry points
@@ -62,7 +62,7 @@ A webapp where users submit mental map nodes (center concept + branches), data i
 
 ---
 
-## Step 5 — Media attachments per branch ✓
+## Step 4 — Media attachments per branch ✓
 
 - [x] Optional image / video / audio upload per branch (`multer`)
 - [x] Files stored on disk (`backend/uploads/`)
@@ -74,15 +74,40 @@ A webapp where users submit mental map nodes (center concept + branches), data i
 
 ---
 
-## Step 6 — Code quality (next)
+## Step 5 — Adaptations (next)
 
-- [ ] ESLint + Prettier setup
-- [ ] `.editorconfig`
-- [ ] Lint and format scripts in `package.json`
+- [ ] Remove main node text
+- [ ] Localise app: admin page in browser language only French and English are supported
+- [ ] Localise app: project should have a language as parameter (admin browser language by default) only French and English are supported
+- [ ] Add optional participant name field with default value "Participant 1", then "Participant 2", ... If French, "Participant·e X"
+- [ ] Display participant name for each node
+- [ ] For each branch, add a mini-node, for connections, link the mini-nodes instead of the main ones
+- [ ] To test: display each node in different colour
+- [ ] Display icon on mini-node if there is an image, video or audio attached
+- [ ] Later: When auto-orbiting, sometimes, stop on a random mini-node, zoom and display details for 10 seconds
 
 ---
 
-## Step 7 — Testing
+## Step 1T — TypeScript migration ✓
+
+- [x] Backend: `keywords.ts`, `db.ts`, `server.ts` — strict TS with named exports, interfaces for all DB entities
+- [x] Backend: `tsconfig.json` (CommonJS, ES2022), `tsx` dev runner, `tsc` production build
+- [x] Backend devDeps: `typescript`, `tsx`, `@types/node`, `@types/express`, `@types/multer`
+- [x] Frontend: `submit.ts`, `admin.ts`, `graph.ts`, `types.ts`, `vite.config.ts`
+- [x] Frontend: `tsconfig.json` (bundler resolution, noEmit, strict)
+- [x] Frontend devDeps: `typescript`; HTML entry points updated to `.ts`
+
+---
+
+## Step 2T — Code quality
+
+- [ ] oxlint + oxfmt setup (workspace root)
+- [ ] `.editorconfig`
+- [ ] Lint and format scripts in root `package.json`
+
+---
+
+## Step 3T — Testing
 
 - [ ] Vitest for unit tests (keyword extraction, connection logic)
 - [ ] Supertest for API integration tests
@@ -90,7 +115,7 @@ A webapp where users submit mental map nodes (center concept + branches), data i
 
 ---
 
-## Step 8 — Containerization & CI/CD
+## Step 4T — Containerization & CI/CD
 
 - [ ] Dockerfile + `.dockerignore`
 - [ ] `docker-compose.yml`
@@ -99,7 +124,7 @@ A webapp where users submit mental map nodes (center concept + branches), data i
 
 ---
 
-## Step 9 — Production hardening
+## Step 5T — Production hardening
 
 - [ ] `helmet`, `express-rate-limit`
 - [ ] Structured logging (Pino)
@@ -115,3 +140,4 @@ A webapp where users submit mental map nodes (center concept + branches), data i
 - `PRAGMA foreign_keys = ON` cannot be used inside a multi-statement `exec()` in `node:sqlite` — omitted (integrity enforced at app level).
 - D3.js 2D graph replaced by `3d-force-graph` (Three.js/WebGL) — better visual impact for collective data.
 - npm replaced by pnpm (v10) with workspaces — faster installs, shared lockfile.
+- All source files migrated to TypeScript (strict mode). Backend runs via `tsx` in dev, compiled with `tsc` for production. Frontend uses Vite's native TS support.

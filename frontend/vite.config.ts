@@ -1,5 +1,8 @@
 import { defineConfig } from 'vite';
-import { resolve } from 'path';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   appType: 'mpa',
@@ -23,8 +26,8 @@ export default defineConfig({
       name: 'rewrite-routes',
       configureServer(server) {
         server.middlewares.use((req, _res, next) => {
-          if (/^\/submit\/[^/]+\/?$/.test(req.url)) req.url = '/submit.html';
-          if (/^\/graph\/[^/]+\/?$/.test(req.url)) req.url = '/graph.html';
+          if (/^\/submit\/[^/]+\/?$/.test(req.url ?? '')) req.url = '/submit.html';
+          if (/^\/graph\/[^/]+\/?$/.test(req.url ?? '')) req.url = '/graph.html';
           next();
         });
       },

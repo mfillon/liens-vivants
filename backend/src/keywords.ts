@@ -40,24 +40,20 @@ const STOP_WORDS = new Set([
   'faire', 'faite', 'faits', 'faites', 'fait', 'fais',
 ]);
 
-/**
- * Extract meaningful keywords from a text string.
- * Returns a Set of lowercase tokens with length >= 3, excluding stop words.
- */
-function extractKeywords(text) {
+/** Extract meaningful keywords from a text string. Returns a Set of lowercase tokens. */
+function extractKeywords(text: string | undefined): Set<string> {
   if (!text) return new Set();
   return new Set(
-    text.toLowerCase()
+    text
+      .toLowerCase()
       .split(/\W+/)
-      .filter(token => token.length >= 3 && !STOP_WORDS.has(token))
+      .filter((token) => token.length >= 3 && !STOP_WORDS.has(token)),
   );
 }
 
-/**
- * Given an array of text strings, return the union of all keywords.
- */
-function extractKeywordsFromTexts(texts) {
-  const result = new Set();
+/** Given an array of text strings, return the union of all keywords. */
+function extractKeywordsFromTexts(texts: string[]): Set<string> {
+  const result = new Set<string>();
   for (const text of texts) {
     for (const kw of extractKeywords(text)) {
       result.add(kw);
@@ -66,11 +62,9 @@ function extractKeywordsFromTexts(texts) {
   return result;
 }
 
-/**
- * Return the intersection of two Sets as an array.
- */
-function intersect(setA, setB) {
-  return [...setA].filter(k => setB.has(k));
+/** Return the intersection of two Sets as an array. */
+function intersect(setA: Set<string>, setB: Set<string>): string[] {
+  return [...setA].filter((k) => setB.has(k));
 }
 
-module.exports = { extractKeywords, extractKeywordsFromTexts, intersect };
+export { extractKeywords, extractKeywordsFromTexts, intersect };
