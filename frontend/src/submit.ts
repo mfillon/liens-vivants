@@ -53,8 +53,10 @@ function renderForm(project: Project, projectUuid: string): void {
     msg.className = 'message hidden';
 
     const center_text = (document.getElementById('centerText') as HTMLTextAreaElement).value.trim();
-    const branches = project.branch_labels.map(
-      (bl) => ((document.getElementById(`branch${bl.position}`) as HTMLInputElement | null)?.value ?? '').trim(),
+    const branches = project.branch_labels.map((bl) =>
+      (
+        (document.getElementById(`branch${bl.position}`) as HTMLInputElement | null)?.value ?? ''
+      ).trim(),
     );
 
     try {
@@ -77,7 +79,9 @@ function renderForm(project: Project, projectUuid: string): void {
 
       const uploadErrors: string[] = [];
       for (const { position, id } of data.branchIds ?? []) {
-        const fileInput = document.getElementById(`branchFile${position}`) as HTMLInputElement | null;
+        const fileInput = document.getElementById(
+          `branchFile${position}`,
+        ) as HTMLInputElement | null;
         if (fileInput?.files?.length) {
           const formData = new FormData();
           formData.append('file', fileInput.files[0]);

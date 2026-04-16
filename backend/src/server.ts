@@ -31,7 +31,9 @@ const upload = multer({
     if (/^(image|audio|video)\//.test(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(Object.assign(new Error('Only image, audio, and video files are allowed'), { status: 400 }));
+      cb(
+        Object.assign(new Error('Only image, audio, and video files are allowed'), { status: 400 }),
+      );
     }
   },
 });

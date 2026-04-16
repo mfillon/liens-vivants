@@ -99,11 +99,13 @@ A webapp where users submit mental map nodes (center concept + branches), data i
 
 ---
 
-## Step 2T — Code quality
+## Step 2T — Code quality ✓
 
-- [ ] oxlint + oxfmt setup (workspace root)
+- [x] `oxlint` + `oxfmt` installed at workspace root
+- [x] `.oxlintrc.json`: correctness=error, suspicious=warn, typescript/unicorn/oxc plugins
+- [x] `.oxfmtrc.json`: printWidth=100, singleQuote, trailingComma=all, semi, LF
+- [x] Root scripts: `lint`, `format`, `format:check`, `typecheck`
 - [ ] `.editorconfig`
-- [ ] Lint and format scripts in root `package.json`
 
 ---
 

@@ -116,7 +116,10 @@ function renderProjects(projects: Project[]): void {
       project.branch_labels.length > 0
         ? '<ul>' +
           project.branch_labels
-            .map((bl) => `<li><span class="position">${bl.position}.</span> ${escapeHtml(bl.label)}</li>`)
+            .map(
+              (bl) =>
+                `<li><span class="position">${bl.position}.</span> ${escapeHtml(bl.label)}</li>`,
+            )
             .join('') +
           '</ul>'
         : '<p class="empty">No branch labels defined</p>';

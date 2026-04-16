@@ -96,17 +96,17 @@ db.exec(`
 // Idempotent migrations
 try {
   db.exec('ALTER TABLE nodes ADD COLUMN project_id INTEGER REFERENCES projects(id)');
-} catch (_) {
+} catch {
   /* column already exists */
 }
 try {
   db.exec('ALTER TABLE branches ADD COLUMN media_path TEXT');
-} catch (_) {
+} catch {
   /* column already exists */
 }
 try {
   db.exec('ALTER TABLE branches ADD COLUMN media_type TEXT');
-} catch (_) {
+} catch {
   /* column already exists */
 }
 

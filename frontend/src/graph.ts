@@ -112,7 +112,9 @@ function renderGraph(project: Project, nodes: Node[], connections: Connection[])
       return sprite;
     })
     .nodeThreeObjectExtend(false)
-    .linkColor((d) => ((d as GraphLink)._isHubLink ? 'rgba(106,122,154,0.25)' : 'rgba(74,144,226,0.85)'))
+    .linkColor((d) =>
+      (d as GraphLink)._isHubLink ? 'rgba(106,122,154,0.25)' : 'rgba(74,144,226,0.85)',
+    )
     .linkWidth((d) => ((d as GraphLink)._isHubLink ? 0.3 : 1.5))
     .linkOpacity(1)
     .onNodeClick((node) => {
@@ -125,17 +127,14 @@ function renderGraph(project: Project, nodes: Node[], connections: Connection[])
       const l = link as RealLink;
       if (!l._isHubLink) {
         window.__graphOrbit?.pause();
-        showConnection(
-          l.source as unknown as Node,
-          l.target as unknown as Node,
-          l.keywords,
-        );
+        showConnection(l.source as unknown as Node, l.target as unknown as Node, l.keywords);
       }
     })
     .onBackgroundClick(() => {
       window.__graphOrbit?.pause();
       document.getElementById('detail-content')!.innerHTML = '';
-      document.getElementById('sidebar-hint')!.textContent = 'Click a node or connection to explore';
+      document.getElementById('sidebar-hint')!.textContent =
+        'Click a node or connection to explore';
     });
 
   setTimeout(() => {
@@ -171,7 +170,8 @@ function renderGraph(project: Project, nodes: Node[], connections: Connection[])
       window.__graphOrbit = { pause: pauseOrbit, resume: startOrbit };
 
       btn.addEventListener('click', () => {
-        intervalId ? pauseOrbit() : startOrbit();
+        if (intervalId) pauseOrbit();
+        else startOrbit();
       });
 
       startOrbit();
@@ -230,7 +230,10 @@ function branchesHtml(branches: Branch[]): string {
   return (
     '<ul>' +
     branches
-      .map((b) => `<li><span class="position">${b.position}.</span> ${escapeHtml(b.text)}${mediaHtml(b)}</li>`)
+      .map(
+        (b) =>
+          `<li><span class="position">${b.position}.</span> ${escapeHtml(b.text)}${mediaHtml(b)}</li>`,
+      )
       .join('') +
     '</ul>'
   );
