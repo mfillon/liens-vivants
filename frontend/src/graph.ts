@@ -416,7 +416,8 @@ function renderGraph(
         selectNode(target.id);
         showAnswer(target, lang);
 
-        // After 10 s: clear selection, zoom back out, resume orbit
+        // After 10 s (with media) or 4 s (text only): clear selection, zoom back out, resume orbit
+        const duration = target.media_path ? 10000 : 4000;
         autoResume = true;
         spotlightTimeout = setTimeout(() => {
           autoResume = false;
@@ -425,7 +426,7 @@ function renderGraph(
           document.getElementById('sidebar-hint')!.textContent = t('graph.hint', lang);
           Graph.zoomToFit(1500, -500);
           spotlightTimeout = setTimeout(() => startOrbit(), 1600);
-        }, 10000);
+        }, duration);
       }
 
       function scheduleSpotlight(): void {
