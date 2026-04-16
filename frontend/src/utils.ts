@@ -21,8 +21,8 @@ export function mediaHtml(branch: Branch): string {
   return '';
 }
 
-export function branchesHtml(branches: Branch[]): string {
-  if (!branches?.length) return '<p class="empty">No branches</p>';
+export function branchesHtml(branches: Branch[], emptyText = 'No branches'): string {
+  if (!branches?.length) return `<p class="empty">${emptyText}</p>`;
   return (
     '<ul>' +
     branches

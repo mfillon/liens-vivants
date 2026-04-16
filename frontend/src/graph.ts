@@ -2,6 +2,7 @@ import ForceGraph3D, { type NodeObject } from '3d-force-graph';
 import SpriteText from 'three-spritetext';
 import type { Connection, Node, Project } from './types';
 import { branchesHtml, escapeHtml, truncate } from './utils';
+import { detectLang, t, type Lang } from './i18n';
 
 declare global {
   interface Window {
@@ -12,7 +13,10 @@ declare global {
 const pathParts = window.location.pathname.split('/');
 const uuid = pathParts[pathParts.indexOf('graph') + 1];
 
-if (!uuid) showError('No project UUID in URL.');
+// Use browser language for pre-load errors; project language once loaded
+const browserLang: Lang = detectLang();
+
+if (!uuid) showError(t('graph.error.no_uuid', browserLang));
 else loadGraph(uuid);
 
 async function loadGraph(projectUuid: string): Promise<void> {
@@ -23,22 +27,33 @@ async function loadGraph(projectUuid: string): Promise<void> {
       fetch(`/api/projects/${projectUuid}/connections`),
     ]);
     if (!projectRes.ok) {
-      showError('Project not found.');
+      showError(t('graph.error.not_found', browserLang));
       return;
     }
 
     const project = (await projectRes.json()) as Project;
+    const lang: Lang = project.language === 'fr' ? 'fr' : 'en';
     const nodes = (await nodesRes.json()) as Node[];
     const connections = (await connectionsRes.json()) as Connection[];
 
+    document.documentElement.lang = lang;
     document.getElementById('project-title')!.textContent = project.center_label;
-    document.getElementById('stats')!.textContent =
-      `${nodes.length} node${nodes.length !== 1 ? 's' : ''} · ` +
-      `${connections.length} connection${connections.length !== 1 ? 's' : ''}`;
 
-    renderGraph(project, nodes, connections);
+    const nodeWord =
+      nodes.length === 1 ? t('graph.node_singular', lang) : t('graph.node_plural', lang);
+    const connWord =
+      connections.length === 1
+        ? t('graph.connection_singular', lang)
+        : t('graph.connection_plural', lang);
+    document.getElementById('stats')!.textContent =
+      `${nodes.length} ${nodeWord} · ${connections.length} ${connWord}`;
+
+    document.getElementById('sidebar-hint')!.textContent = t('graph.hint', lang);
+    document.getElementById('orbit-btn')!.textContent = t('graph.orbit_pause', lang);
+
+    renderGraph(project, nodes, connections, lang);
   } catch {
-    showError('Failed to load graph data.');
+    showError(t('graph.error.load_failed', browserLang));
   }
 }
 
@@ -69,7 +84,7 @@ interface RealLink {
 
 type GraphLink = HubLink | RealLink;
 
-function renderGraph(project: Project, nodes: Node[], connections: Connection[]): void {
+function renderGraph(project: Project, nodes: Node[], connections: Connection[], lang: Lang): void {
   const container = document.getElementById('graph-3d')!;
 
   const hubNode: HubNode = {
@@ -130,8 +145,8 @@ function renderGraph(project: Project, nodes: Node[], connections: Connection[])
       const id = node.id;
       const data = id !== undefined ? nodeById.get(id) : undefined;
       if (!data) return;
-      if ('_isHub' in data) showHub(data);
-      else showSingleNode(data);
+      if ('_isHub' in data) showHub(data, lang);
+      else showSingleNode(data, lang);
     })
     .onLinkClick((link) => {
       if (!('keywords' in link)) return;
@@ -147,13 +162,12 @@ function renderGraph(project: Project, nodes: Node[], connections: Connection[])
       const target = nodeById.get(targetId);
       if (!source || '_isHub' in source) return;
       if (!target || '_isHub' in target) return;
-      showConnection(source, target, realLink.keywords);
+      showConnection(source, target, realLink.keywords, lang);
     })
     .onBackgroundClick(() => {
       window.__graphOrbit?.pause();
       document.getElementById('detail-content')!.innerHTML = '';
-      document.getElementById('sidebar-hint')!.textContent =
-        'Click a node or connection to explore';
+      document.getElementById('sidebar-hint')!.textContent = t('graph.hint', lang);
     });
 
   setTimeout(() => {
@@ -177,13 +191,13 @@ function renderGraph(project: Project, nodes: Node[], connections: Connection[])
           });
           theta += Math.PI / 300;
         }, 10);
-        btn.textContent = '⏸ Pause orbit';
+        btn.textContent = t('graph.orbit_pause', lang);
       }
 
       function pauseOrbit(): void {
         if (intervalId) clearInterval(intervalId);
         intervalId = null;
-        btn.textContent = '▶ Resume orbit';
+        btn.textContent = t('graph.orbit_resume', lang);
       }
 
       window.__graphOrbit = { pause: pauseOrbit, resume: startOrbit };
@@ -200,8 +214,8 @@ function renderGraph(project: Project, nodes: Node[], connections: Connection[])
 
 // ── Sidebar renderers ──────────────────────────────────────────────────────
 
-function showHub(d: HubNode): void {
-  document.getElementById('sidebar-hint')!.textContent = 'Project question';
+function showHub(d: HubNode, lang: Lang): void {
+  document.getElementById('sidebar-hint')!.textContent = t('graph.project_question', lang);
   const labelsHtml =
     d.branches.length > 0
       ? '<ul>' +
@@ -209,7 +223,7 @@ function showHub(d: HubNode): void {
           .map((b) => `<li><span class="position">${b.position}.</span> ${escapeHtml(b.text)}</li>`)
           .join('') +
         '</ul>'
-      : '<p class="empty">No branch labels defined</p>';
+      : `<p class="empty">${t('graph.no_branch_labels', lang)}</p>`;
 
   document.getElementById('detail-content')!.innerHTML = `
     <div class="node-block">
@@ -218,29 +232,29 @@ function showHub(d: HubNode): void {
     </div>`;
 }
 
-function showSingleNode(d: Node): void {
-  document.getElementById('sidebar-hint')!.textContent = 'Response';
+function showSingleNode(d: Node, lang: Lang): void {
+  document.getElementById('sidebar-hint')!.textContent = t('graph.response', lang);
   document.getElementById('detail-content')!.innerHTML = `
     <div class="node-block">
       <div class="center">${escapeHtml(d.participant_name)}</div>
-      ${branchesHtml(d.branches)}
+      ${branchesHtml(d.branches, t('graph.no_branches', lang))}
     </div>`;
 }
 
-function showConnection(nodeA: Node, nodeB: Node, keywords: string[]): void {
-  document.getElementById('sidebar-hint')!.textContent = 'Connection';
+function showConnection(nodeA: Node, nodeB: Node, keywords: string[], lang: Lang): void {
+  document.getElementById('sidebar-hint')!.textContent = t('graph.connection_label', lang);
   const tagsHtml = keywords.map((k) => `<span class="shared-tag">${escapeHtml(k)}</span>`).join('');
 
   document.getElementById('detail-content')!.innerHTML = `
     <div class="shared-row">${tagsHtml}</div>
     <div class="node-block">
       <div class="center">${escapeHtml(nodeA.participant_name)}</div>
-      ${branchesHtml(nodeA.branches)}
+      ${branchesHtml(nodeA.branches, t('graph.no_branches', lang))}
     </div>
     <hr class="divider">
     <div class="node-block">
       <div class="center">${escapeHtml(nodeB.participant_name)}</div>
-      ${branchesHtml(nodeB.branches)}
+      ${branchesHtml(nodeB.branches, t('graph.no_branches', lang))}
     </div>`;
 }
 
