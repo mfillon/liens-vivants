@@ -1,6 +1,7 @@
 import ForceGraph3D from '3d-force-graph';
 import SpriteText from 'three-spritetext';
 import type { Branch, Connection, Node, Project } from './types';
+import { escapeHtml, truncate } from './utils';
 
 declare global {
   interface Window {
@@ -250,15 +251,6 @@ function mediaHtml(branch: Branch): string {
   return '';
 }
 
-function truncate(str: string, max: number): string {
-  return str.length > max ? str.slice(0, max) + '…' : str;
-}
-
-function escapeHtml(str: string): string {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
 
 function showError(msg: string): void {
   const errorEl = document.getElementById('error')!;

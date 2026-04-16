@@ -1,4 +1,5 @@
 import type { BranchLabel, Project } from './types';
+import { escapeHtml } from './utils';
 
 const pathParts = window.location.pathname.split('/');
 const uuid = pathParts[pathParts.indexOf('submit') + 1];
@@ -109,10 +110,4 @@ function renderForm(project: Project, projectUuid: string): void {
       msg.className = 'message error';
     }
   });
-}
-
-function escapeHtml(str: string): string {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
 }

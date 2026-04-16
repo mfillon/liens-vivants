@@ -111,7 +111,10 @@ A webapp where users submit mental map nodes (center concept + branches), data i
 
 ## Step 3T — Testing
 
-- [ ] Vitest for unit tests (keyword extraction, connection logic)
+- [x] Vitest installed in both workspaces (`vitest@4`)
+- [x] Backend: `keywords.test.ts` — 11 tests for `extractKeywords`, `extractKeywordsFromTexts`, `intersect`
+- [x] Frontend: `utils.ts` extracted (`escapeHtml`, `truncate`); `utils.test.ts` — 8 tests with happy-dom
+- [x] Root `pnpm test` runs both workspaces
 - [ ] Supertest for API integration tests
 - [ ] Coverage threshold
 

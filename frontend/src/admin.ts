@@ -1,4 +1,5 @@
 import type { Branch, Node, Project } from './types';
+import { escapeHtml } from './utils';
 
 declare global {
   interface Window {
@@ -262,10 +263,4 @@ function mediaHtml(branch: Branch): string {
   if (branch.media_type?.startsWith('video/'))
     return `<video controls src="${src}" class="branch-media"></video>`;
   return '';
-}
-
-function escapeHtml(str: string): string {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
 }

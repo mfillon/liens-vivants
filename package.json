@@ -9,7 +9,8 @@
     "lint": "oxlint backend/src frontend/src",
     "format": "oxfmt backend/src frontend/src",
     "format:check": "oxfmt --check backend/src frontend/src",
-    "typecheck": "pnpm --dir backend typecheck && pnpm --dir frontend typecheck"
+    "typecheck": "pnpm --dir backend typecheck && pnpm --dir frontend typecheck",
+    "test": "pnpm --dir backend test && pnpm --dir frontend test"
   },
   "devDependencies": {
     "concurrently": "^9.0.0",
