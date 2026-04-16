@@ -74,17 +74,23 @@ A webapp where users submit mental map nodes (center concept + branches), data i
 
 ---
 
-## Step 5 — Adaptations (next)
+## Step 5 — Localise app + participant name instead of main project answer ✓
 
-- [ ] Remove main node text
-- [ ] Localise app: admin page in browser language only French and English are supported
-- [ ] Localise app: project should have a language as parameter (admin browser language by default) only French and English are supported
-- [ ] Add optional participant name field with default value "Participant 1", then "Participant 2", ... If French, "Participant·e X"
-- [ ] Display participant name for each node
+- [x] Remove main node text answer
+- [x] Localise app: admin page in browser language only French and English are supported
+- [x] Localise app: project should have a language as parameter (admin browser language by default) only French and English are supported
+- [x] Add optional participant name field with default value "Participant 1", then "Participant 2", ... If French, "Participant·e X"
+- [x] Display participant name for each node (same as main question answer now)
+
+---
+
+## Step 6 — Add mini nodes
+
+- [ ] Rename node => participant, branches => answers to be have functionnal namne
 - [ ] For each branch, add a mini-node, for connections, link the mini-nodes instead of the main ones
 - [ ] To test: display each node in different colour
 - [ ] Display icon on mini-node if there is an image, video or audio attached
-- [ ] Later: When auto-orbiting, sometimes, stop on a random mini-node, zoom and display details for 10 seconds
+- [ ] When auto-orbiting, sometimes, stop on a random mini-node, zoom and display details for 10 seconds
 
 ---
 

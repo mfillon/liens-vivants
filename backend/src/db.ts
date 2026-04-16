@@ -16,6 +16,7 @@ export interface Project {
   id: number;
   uuid: string;
   center_label: string;
+  language: string;
   created_at: string;
   branch_labels: BranchLabel[];
 }
@@ -32,7 +33,7 @@ export interface Branch {
 export interface Node {
   id: number;
   project_id: number | null;
-  center_text: string;
+  participant_name: string;
   created_at: string;
   branches: Branch[];
 }
@@ -48,7 +49,14 @@ export interface Connection {
 
 // Raw row shapes from SQLite (before joining related records)
 type ProjectRow = Omit<Project, 'branch_labels'>;
-type NodeRow = Omit<Node, 'branches'>;
+
+// Raw row from SQLite nodes table — center_text is the actual column name
+type NodeDbRow = {
+  id: number;
+  project_id: number | null;
+  center_text: string;
+  created_at: string;
+};
 
 // ── Database setup ─────────────────────────────────────────────────────────
 
@@ -110,10 +118,17 @@ try {
 } catch {
   /* column already exists */
 }
+try {
+  db.exec("ALTER TABLE projects ADD COLUMN language TEXT NOT NULL DEFAULT 'en'");
+} catch {
+  /* column already exists */
+}
 
 // ── Prepared statements ────────────────────────────────────────────────────
 
-const insertProject = db.prepare('INSERT INTO projects (uuid, center_label) VALUES (?, ?)');
+const insertProject = db.prepare(
+  'INSERT INTO projects (uuid, center_label, language) VALUES (?, ?, ?)',
+);
 const insertBranchLabel = db.prepare(
   'INSERT INTO project_branch_labels (project_id, position, label) VALUES (?, ?, ?)',
 );
@@ -146,14 +161,26 @@ const selectConnectionsByProject = db.prepare(
   'SELECT * FROM connections WHERE project_id = ? ORDER BY created_at DESC',
 );
 
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+function mapNodeRow(row: NodeDbRow): Omit<Node, 'branches'> {
+  return {
+    id: row.id,
+    project_id: row.project_id,
+    participant_name: row.center_text,
+    created_at: row.created_at,
+  };
+}
+
 // ── Projects ───────────────────────────────────────────────────────────────
 
 export function createProject(
   center_label: string,
   branch_labels: string[],
+  language = 'en',
 ): Pick<Project, 'id' | 'uuid'> {
   const uuid = randomUUID();
-  const result = insertProject.run(uuid, center_label);
+  const result = insertProject.run(uuid, center_label, language);
   const projectId = result.lastInsertRowid as number;
   for (let i = 0; i < branch_labels.length; i++) {
     const label = branch_labels[i];
@@ -182,14 +209,18 @@ export function getAllProjects(): Array<Project & { submission_count: number }> 
   }));
 }
 
+export function getNodeCountByProject(projectId: number): number {
+  return (selectNodeCountByProject.get(projectId) as { count: number }).count;
+}
+
 // ── Nodes ──────────────────────────────────────────────────────────────────
 
 export function createNode(
   project_id: number,
-  center_text: string,
+  participant_name: string,
   branches: string[],
 ): { nodeId: number; branchIds: Array<{ position: number; id: number }> } {
-  const nodeResult = insertNode.run(project_id, center_text);
+  const nodeResult = insertNode.run(project_id, participant_name);
   const nodeId = nodeResult.lastInsertRowid as number;
   const branchIds: Array<{ position: number; id: number }> = [];
   for (let i = 0; i < branches.length; i++) {
@@ -221,18 +252,18 @@ export function getBranchById(branchId: number): Branch | undefined {
 }
 
 export function getAllNodes(): Node[] {
-  const nodes = selectNodes.all() as unknown as NodeRow[];
-  return nodes.map((node) => ({
-    ...node,
-    branches: selectBranches.all(node.id) as unknown as Branch[],
+  const rows = selectNodes.all() as unknown as NodeDbRow[];
+  return rows.map((row) => ({
+    ...mapNodeRow(row),
+    branches: selectBranches.all(row.id) as unknown as Branch[],
   }));
 }
 
 export function getNodesByProject(projectId: number): Node[] {
-  const nodes = selectNodesByProject.all(projectId) as unknown as NodeRow[];
-  return nodes.map((node) => ({
-    ...node,
-    branches: selectBranches.all(node.id) as unknown as Branch[],
+  const rows = selectNodesByProject.all(projectId) as unknown as NodeDbRow[];
+  return rows.map((row) => ({
+    ...mapNodeRow(row),
+    branches: selectBranches.all(row.id) as unknown as Branch[],
   }));
 }
 
@@ -247,7 +278,7 @@ function computeConnections(projectId: number, newNodeId: number): void {
 
   const otherNodes = db
     .prepare('SELECT * FROM nodes WHERE project_id = ? AND id != ?')
-    .all(projectId, newNodeId) as unknown as NodeRow[];
+    .all(projectId, newNodeId) as unknown as NodeDbRow[];
 
   for (const other of otherNodes) {
     const otherBranches = selectBranches.all(other.id) as unknown as Branch[];
@@ -271,7 +302,7 @@ export function recomputeAllConnections(): void {
   db.exec('DELETE FROM connections');
   const allNodes = db
     .prepare('SELECT * FROM nodes WHERE project_id IS NOT NULL')
-    .all() as unknown as NodeRow[];
+    .all() as unknown as NodeDbRow[];
   for (const node of allNodes) {
     if (node.project_id !== null) {
       computeConnections(node.project_id, node.id);

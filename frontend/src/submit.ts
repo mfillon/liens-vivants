@@ -1,11 +1,17 @@
 import type { BranchLabel, Project } from './types';
 import { escapeHtml } from './utils';
+import { detectLang, defaultParticipantName, t, type Lang } from './i18n';
 
 const pathParts = window.location.pathname.split('/');
 const uuid = pathParts[pathParts.indexOf('submit') + 1];
 
+// Use browser language as fallback before project language is known
+const browserLang: Lang = detectLang();
+
 if (!uuid) {
-  document.getElementById('invalidLink')!.classList.remove('hidden');
+  const el = document.getElementById('invalidLink')!;
+  el.textContent = t('submit.invalid_link', browserLang);
+  el.classList.remove('hidden');
 } else {
   loadProject(uuid);
 }
@@ -14,23 +20,38 @@ async function loadProject(projectUuid: string): Promise<void> {
   try {
     const res = await fetch(`/api/projects/${projectUuid}`);
     if (!res.ok) {
-      document.getElementById('notFound')!.classList.remove('hidden');
+      const el = document.getElementById('notFound')!;
+      el.textContent = t('submit.not_found', browserLang);
+      el.classList.remove('hidden');
       return;
     }
     const project = (await res.json()) as Project;
     renderForm(project, projectUuid);
   } catch {
-    document.getElementById('notFound')!.classList.remove('hidden');
+    const el = document.getElementById('notFound')!;
+    el.textContent = t('submit.not_found', browserLang);
+    el.classList.remove('hidden');
   }
 }
 
 function renderForm(project: Project, projectUuid: string): void {
-  document.getElementById('pageTitle')!.textContent = project.center_label;
-  document.getElementById('centerLabel')!.innerHTML =
-    `${escapeHtml(project.center_label)} <span class="required">*</span>`;
-  (document.getElementById('centerText') as HTMLTextAreaElement).placeholder = 'Your answer…';
+  const lang: Lang = project.language === 'fr' ? 'fr' : 'en';
 
+  document.documentElement.lang = lang;
+  document.getElementById('pageTitle')!.textContent = project.center_label;
+
+  // Participant name field
+  const nextN = project.next_participant_number ?? 1;
+  const defaultName = defaultParticipantName(nextN, lang);
+  const participantInput = document.getElementById('participantName') as HTMLInputElement;
+  document.getElementById('participantLabel')!.textContent = t('submit.participant_label', lang);
+  participantInput.placeholder = defaultName;
+  participantInput.value = defaultName;
+
+  // Branch fields
   const fieldset = document.getElementById('branchesFieldset')!;
+  document.getElementById('branchesLegend')!.textContent = t('submit.branches_legend', lang);
+
   if (project.branch_labels.length === 0) {
     (fieldset as HTMLElement).style.display = 'none';
   } else {
@@ -39,13 +60,14 @@ function renderForm(project: Project, projectUuid: string): void {
       div.className = 'field';
       div.innerHTML = `
         <label for="branch${bl.position}">${escapeHtml(bl.label)}</label>
-        <input type="text" id="branch${bl.position}" placeholder="Your answer…">
+        <input type="text" id="branch${bl.position}" placeholder="${t('submit.branch_placeholder', lang)}">
         <input type="file" id="branchFile${bl.position}" accept="image/*,audio/*,video/*" class="file-input">
       `;
       fieldset.appendChild(div);
     });
   }
 
+  document.getElementById('submitBtn')!.textContent = t('submit.button', lang);
   document.getElementById('formSection')!.classList.remove('hidden');
 
   document.getElementById('nodeForm')!.addEventListener('submit', async (e) => {
@@ -53,7 +75,8 @@ function renderForm(project: Project, projectUuid: string): void {
     const msg = document.getElementById('message')!;
     msg.className = 'message hidden';
 
-    const center_text = (document.getElementById('centerText') as HTMLTextAreaElement).value.trim();
+    const participant_name = participantInput.value.trim() || defaultParticipantName(nextN, lang);
+
     const branches = project.branch_labels.map((bl) =>
       (
         (document.getElementById(`branch${bl.position}`) as HTMLInputElement | null)?.value ?? ''
@@ -64,7 +87,7 @@ function renderForm(project: Project, projectUuid: string): void {
       const res = await fetch('/api/nodes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ project_uuid: projectUuid, center_text, branches }),
+        body: JSON.stringify({ project_uuid: projectUuid, participant_name, branches }),
       });
 
       const data = (await res.json()) as {
@@ -98,15 +121,15 @@ function renderForm(project: Project, projectUuid: string): void {
       }
 
       if (uploadErrors.length) {
-        msg.textContent = `Submitted, but some uploads failed: ${uploadErrors.join('; ')}`;
+        msg.textContent = `${t('submit.error.uploads', lang)} ${uploadErrors.join('; ')}`;
         msg.className = 'message error';
       } else {
-        msg.textContent = 'Thank you! Your response has been submitted.';
+        msg.textContent = t('submit.success', lang);
         msg.className = 'message success';
       }
       (e.target as HTMLFormElement).reset();
     } catch {
-      msg.textContent = 'Network error. Please try again.';
+      msg.textContent = t('submit.error.network', lang);
       msg.className = 'message error';
     }
   });

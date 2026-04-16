@@ -52,6 +52,18 @@ describe('createProject / getProjectByUUID', () => {
   it('returns undefined for unknown uuid', () => {
     expect(getProjectByUUID('00000000-0000-0000-0000-000000000000')).toBeUndefined();
   });
+
+  it('stores language, defaults to en', () => {
+    const { uuid } = createProject('Q', []);
+    const project = getProjectByUUID(uuid);
+    expect(project!.language).toBe('en');
+  });
+
+  it('stores custom language', () => {
+    const { uuid } = createProject('Q', [], 'fr');
+    const project = getProjectByUUID(uuid);
+    expect(project!.language).toBe('fr');
+  });
 });
 
 describe('getAllProjects', () => {
@@ -65,8 +77,8 @@ describe('getAllProjects', () => {
 
   it('submission_count reflects node count', () => {
     const { id, uuid } = createProject('Q', ['A']);
-    createNode(id, 'answer one', ['branch one']);
-    createNode(id, 'answer two', ['branch two']);
+    createNode(id, 'Participant 1', ['branch one']);
+    createNode(id, 'Participant 2', ['branch two']);
     const projects = getAllProjects();
     const project = projects.find((p) => p.uuid === uuid)!;
     expect(project.submission_count).toBe(2);
@@ -78,7 +90,7 @@ describe('getAllProjects', () => {
 describe('createNode / getAllNodes / getNodesByProject', () => {
   it('returns nodeId and branchIds', () => {
     const { id: projectId } = createProject('Q', []);
-    const { nodeId, branchIds } = createNode(projectId, 'center', ['branch A', 'branch B']);
+    const { nodeId, branchIds } = createNode(projectId, 'Alice', ['branch A', 'branch B']);
     expect(typeof nodeId).toBe('number');
     expect(branchIds).toHaveLength(2);
     expect(branchIds[0]).toMatchObject({ position: 1, id: expect.any(Number) });
@@ -87,13 +99,13 @@ describe('createNode / getAllNodes / getNodesByProject', () => {
 
   it('skips blank branches', () => {
     const { id: projectId } = createProject('Q', []);
-    const { branchIds } = createNode(projectId, 'center', ['ok', '', '  ']);
+    const { branchIds } = createNode(projectId, 'Alice', ['ok', '', '  ']);
     expect(branchIds).toHaveLength(1);
   });
 
   it('getAllNodes includes branches', () => {
     const { id: projectId } = createProject('Q', []);
-    createNode(projectId, 'my answer', ['alpha', 'beta']);
+    createNode(projectId, 'Alice', ['alpha', 'beta']);
     const nodes = getAllNodes();
     expect(nodes).toHaveLength(1);
     expect(nodes[0].branches).toHaveLength(2);
@@ -103,11 +115,11 @@ describe('createNode / getAllNodes / getNodesByProject', () => {
   it('getNodesByProject filters by project', () => {
     const { id: p1 } = createProject('P1', []);
     const { id: p2 } = createProject('P2', []);
-    createNode(p1, 'answer for p1', []);
-    createNode(p2, 'answer for p2', []);
+    createNode(p1, 'Alice', []);
+    createNode(p2, 'Bob', []);
     expect(getNodesByProject(p1)).toHaveLength(1);
     expect(getNodesByProject(p2)).toHaveLength(1);
-    expect(getNodesByProject(p1)[0].center_text).toBe('answer for p1');
+    expect(getNodesByProject(p1)[0].participant_name).toBe('Alice');
   });
 });
 
@@ -116,7 +128,7 @@ describe('createNode / getAllNodes / getNodesByProject', () => {
 describe('getBranchById / saveBranchMedia', () => {
   it('getBranchById returns the branch', () => {
     const { id: projectId } = createProject('Q', []);
-    const { branchIds } = createNode(projectId, 'center', ['my branch']);
+    const { branchIds } = createNode(projectId, 'Alice', ['my branch']);
     const branch = getBranchById(branchIds[0].id);
     expect(branch).toBeDefined();
     expect(branch!.text).toBe('my branch');
@@ -128,7 +140,7 @@ describe('getBranchById / saveBranchMedia', () => {
 
   it('saveBranchMedia updates media_path and media_type', () => {
     const { id: projectId } = createProject('Q', []);
-    const { branchIds } = createNode(projectId, 'center', ['my branch']);
+    const { branchIds } = createNode(projectId, 'Alice', ['my branch']);
     const branchId = branchIds[0].id;
     saveBranchMedia(branchId, 'branch-123.jpg', 'image/jpeg');
     const branch = getBranchById(branchId);
@@ -146,8 +158,8 @@ describe('getBranchById / saveBranchMedia', () => {
 describe('getConnectionsByProject / computeConnections (via createNode)', () => {
   it('creates a connection when two nodes share branch keywords', () => {
     const { id: projectId } = createProject('Q', []);
-    createNode(projectId, 'node A', ['climate change ocean']);
-    createNode(projectId, 'node B', ['ocean pollution climate']);
+    createNode(projectId, 'Alice', ['climate change ocean']);
+    createNode(projectId, 'Bob', ['ocean pollution climate']);
     const connections = getConnectionsByProject(projectId);
     expect(connections).toHaveLength(1);
     expect(connections[0].shared_keywords).toContain('climate');
@@ -156,15 +168,15 @@ describe('getConnectionsByProject / computeConnections (via createNode)', () => 
 
   it('creates no connection when nodes share no keywords', () => {
     const { id: projectId } = createProject('Q', []);
-    createNode(projectId, 'node A', ['apple banana']);
-    createNode(projectId, 'node B', ['forest mountain']);
+    createNode(projectId, 'Alice', ['apple banana']);
+    createNode(projectId, 'Bob', ['forest mountain']);
     expect(getConnectionsByProject(projectId)).toHaveLength(0);
   });
 
   it('shared_keywords is parsed as an array', () => {
     const { id: projectId } = createProject('Q', []);
-    createNode(projectId, 'X', ['forest river landscape']);
-    createNode(projectId, 'Y', ['landscape nature river']);
+    createNode(projectId, 'Alice', ['forest river landscape']);
+    createNode(projectId, 'Bob', ['landscape nature river']);
     const [conn] = getConnectionsByProject(projectId);
     expect(Array.isArray(conn.shared_keywords)).toBe(true);
   });
@@ -172,8 +184,8 @@ describe('getConnectionsByProject / computeConnections (via createNode)', () => 
   it('does not connect nodes across different projects', () => {
     const { id: p1 } = createProject('P1', []);
     const { id: p2 } = createProject('P2', []);
-    createNode(p1, 'A', ['ocean climate forest']);
-    createNode(p2, 'B', ['ocean climate forest']);
+    createNode(p1, 'Alice', ['ocean climate forest']);
+    createNode(p2, 'Bob', ['ocean climate forest']);
     expect(getConnectionsByProject(p1)).toHaveLength(0);
     expect(getConnectionsByProject(p2)).toHaveLength(0);
   });
@@ -182,8 +194,8 @@ describe('getConnectionsByProject / computeConnections (via createNode)', () => 
 describe('recomputeAllConnections', () => {
   it('rebuilds connections from scratch', () => {
     const { id: projectId } = createProject('Q', []);
-    createNode(projectId, 'X', ['ocean climate']);
-    createNode(projectId, 'Y', ['ocean forest']);
+    createNode(projectId, 'Alice', ['ocean climate']);
+    createNode(projectId, 'Bob', ['ocean forest']);
     expect(getConnectionsByProject(projectId)).toHaveLength(1);
 
     // Recompute should produce the same result

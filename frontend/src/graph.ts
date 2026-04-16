@@ -44,7 +44,7 @@ async function loadGraph(projectUuid: string): Promise<void> {
 
 interface HubNode {
   id: string;
-  center_text: string;
+  participant_name: string;
   branches: Array<{ position: number; text: string }>;
   _isHub: true;
   fx: number;
@@ -74,7 +74,7 @@ function renderGraph(project: Project, nodes: Node[], connections: Connection[])
 
   const hubNode: HubNode = {
     id: '__hub__',
-    center_text: project.center_label,
+    participant_name: project.center_label,
     branches: project.branch_labels.map((bl) => ({ position: bl.position, text: bl.label })),
     _isHub: true,
     fx: 0,
@@ -112,7 +112,7 @@ function renderGraph(project: Project, nodes: Node[], connections: Connection[])
       const id = node.id;
       const data = id !== undefined ? nodeById.get(id) : undefined;
       const isHub = data !== undefined && '_isHub' in data;
-      const text = data?.center_text ?? '';
+      const text = data?.participant_name ?? '';
       const sprite = new SpriteText(truncate(text, isHub ? 20 : 15));
       sprite.color = isHub ? '#ffffff' : '#e0e0e0';
       sprite.textHeight = isHub ? 6 : 4;
@@ -213,7 +213,7 @@ function showHub(d: HubNode): void {
 
   document.getElementById('detail-content')!.innerHTML = `
     <div class="node-block">
-      <div class="center" style="color:#f5a623">${escapeHtml(d.center_text)}</div>
+      <div class="center" style="color:#f5a623">${escapeHtml(d.participant_name)}</div>
       ${labelsHtml}
     </div>`;
 }
@@ -222,7 +222,7 @@ function showSingleNode(d: Node): void {
   document.getElementById('sidebar-hint')!.textContent = 'Response';
   document.getElementById('detail-content')!.innerHTML = `
     <div class="node-block">
-      <div class="center">${escapeHtml(d.center_text)}</div>
+      <div class="center">${escapeHtml(d.participant_name)}</div>
       ${branchesHtml(d.branches)}
     </div>`;
 }
@@ -234,12 +234,12 @@ function showConnection(nodeA: Node, nodeB: Node, keywords: string[]): void {
   document.getElementById('detail-content')!.innerHTML = `
     <div class="shared-row">${tagsHtml}</div>
     <div class="node-block">
-      <div class="center">${escapeHtml(nodeA.center_text)}</div>
+      <div class="center">${escapeHtml(nodeA.participant_name)}</div>
       ${branchesHtml(nodeA.branches)}
     </div>
     <hr class="divider">
     <div class="node-block">
-      <div class="center">${escapeHtml(nodeB.center_text)}</div>
+      <div class="center">${escapeHtml(nodeB.participant_name)}</div>
       ${branchesHtml(nodeB.branches)}
     </div>`;
 }

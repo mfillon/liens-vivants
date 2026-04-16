@@ -8,18 +8,20 @@ A web app for collaborative mental mapping. Admins create projects with structur
 
 ## How it works
 
-1. **Admin creates a project** — defines a central question and up to 5 branch questions, generating a unique shareable link.
-2. **Participants submit responses** — via the UUID link, they answer the central question and each branch, with optional image/audio/video per branch.
+1. **Admin creates a project** — defines a central question, up to 5 branch questions, and the participant form language (EN/FR), generating a unique shareable link.
+2. **Participants submit responses** — via the UUID link, they optionally enter their name (pre-filled as "Participant N") and answer each branch question, with optional image/audio/video per branch.
 3. **Connections form automatically** — on submission, branch answers are tokenized and compared across all responses. Nodes that share meaningful keywords are linked.
-4. **Explore the graph** — anyone with the graph link can view an interactive 3D WebGL graph. Click a node to see its answers and media, click a connection to compare both sides and their shared keywords.
+4. **Explore the graph** — anyone with the graph link can view an interactive 3D WebGL graph. Click a node to see its responses and media, click a connection to compare both sides and their shared keywords.
 
 ---
 
 ## Features
 
-- **Projects**: each project has a custom center label + up to 5 branch labels, and a UUID-gated submission link
+- **Projects**: each project has a custom center label + up to 5 branch labels, a language (EN/FR), and a UUID-gated submission link
+- **Participant names**: auto-suggested as "Participant N" / "Participant·e N" (French), editable by the user before submission
+- **Localisation**: admin dashboard in browser language (EN/FR); participant form in the project's configured language
 - **Autolink**: keyword extraction (EN + FR stop-word filtering) connects nodes at submission time; recompute available from admin panel
-- **3D graph**: WebGL force-directed visualization (`3d-force-graph`); auto-orbiting camera that pauses on any click; click nodes or connections to inspect answers in the sidebar
+- **3D graph**: WebGL force-directed visualization (`3d-force-graph`); auto-orbiting camera that pauses on any click; click nodes or connections to inspect responses in the sidebar
 - **Hub node**: central orange node anchors all responses; keyword connections highlighted in blue
 - **Media attachments**: optional image, audio, or video upload per branch; displayed inline in sidebar and admin view; images open in full-screen lightbox on click
 - **Admin dashboard**: create projects, copy links, view submissions with media, trigger connection recompute
@@ -43,9 +45,9 @@ A web app for collaborative mental mapping. Admins create projects with structur
 
 | Table | Description |
 |-------|-------------|
-| `projects` | One per admin session — uuid, center_label |
+| `projects` | One per admin session — uuid, center_label, language |
 | `project_branch_labels` | Up to 5 labels per project |
-| `nodes` | One per participant submission |
+| `nodes` | One per participant submission — stores participant_name (via center_text column) |
 | `branches` | Up to 5 branch answers per node; optional `media_path` + `media_type` |
 | `connections` | Auto-computed keyword overlaps between nodes |
 
@@ -53,12 +55,12 @@ A web app for collaborative mental mapping. Admins create projects with structur
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | `/api/projects` | Basic | Create a project |
+| POST | `/api/projects` | Basic | Create a project (accepts `language`: `en`\|`fr`) |
 | GET | `/api/projects` | Basic | List all projects |
-| GET | `/api/projects/:uuid` | — | Get project labels (for form) |
+| GET | `/api/projects/:uuid` | — | Get project labels + `next_participant_number` (for form) |
 | GET | `/api/projects/:uuid/nodes` | — | Get all nodes for a project |
 | GET | `/api/projects/:uuid/connections` | — | Get keyword connections |
-| POST | `/api/nodes` | — | Submit a node (requires `project_uuid`) — returns `branchIds` |
+| POST | `/api/nodes` | — | Submit a node (`project_uuid` required, `participant_name` optional — auto-generated if missing) |
 | GET | `/api/nodes` | Basic | List all nodes with branches |
 | POST | `/api/branches/:id/media` | — | Upload media for a branch (image/audio/video, max 50 MB) |
 | POST | `/api/admin/recompute-connections` | Basic | Recompute all connections |

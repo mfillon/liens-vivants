@@ -18,15 +18,17 @@ export interface Project {
   id: number;
   uuid: string;
   center_label: string;
+  language: string;
   created_at: string;
   branch_labels: BranchLabel[];
   submission_count?: number;
+  next_participant_number?: number;
 }
 
 export interface Node {
   id: number;
   project_id: number | null;
-  center_text: string;
+  participant_name: string;
   created_at: string;
   branches: Branch[];
 }

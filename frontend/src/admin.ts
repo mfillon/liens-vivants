@@ -1,5 +1,6 @@
 import type { Node, Project } from './types';
 import { escapeHtml, mediaHtml } from './utils';
+import { detectLang, t, type Lang } from './i18n';
 
 declare global {
   interface Window {
@@ -8,7 +9,43 @@ declare global {
   }
 }
 
+const lang: Lang = detectLang();
 let credentials = '';
+
+// ── Apply i18n to static elements ──────────────────────────────────────────
+
+document.title = t('page.title', lang);
+document.documentElement.lang = lang;
+document.getElementById('admin-h1')!.textContent = t('admin.h1', lang);
+document.getElementById('login-heading')!.textContent = t('login.heading', lang);
+document.getElementById('login-username-label')!.textContent = t('login.username', lang);
+document.getElementById('login-password-label')!.textContent = t('login.password', lang);
+document.getElementById('loginBtn')!.textContent = t('login.button', lang);
+document.getElementById('create-heading')!.textContent = t('create.heading', lang);
+document.getElementById('center-label-text')!.textContent = t('create.center_label', lang);
+(document.getElementById('centerLabel') as HTMLInputElement).placeholder = t(
+  'create.center_placeholder',
+  lang,
+);
+document.getElementById('project-lang-label')!.textContent = t('create.language', lang);
+document.getElementById('lang-opt-en')!.textContent = t('create.language_en', lang);
+document.getElementById('lang-opt-fr')!.textContent = t('create.language_fr', lang);
+document.getElementById('branches-legend')!.textContent = t('create.branches_legend', lang);
+([1, 2, 3, 4, 5] as const).forEach((i) => {
+  document.getElementById(`bl${i}-label`)!.textContent = `${t('create.branch', lang)} ${i}`;
+});
+document.getElementById('create-submit-btn')!.textContent = t('create.submit', lang);
+document.getElementById('new-link-label')!.textContent = t('create.link_label', lang);
+document.getElementById('new-link-copy')!.textContent = t('create.copy', lang);
+document.getElementById('projects-heading')!.textContent = t('projects.heading', lang);
+document.getElementById('tools-heading')!.textContent = t('tools.heading', lang);
+document.getElementById('tools-info')!.textContent = t('tools.recompute_info', lang);
+document.getElementById('recomputeBtn')!.textContent = t('tools.recompute_btn', lang);
+
+// Set default language selector to browser language
+(document.getElementById('projectLang') as HTMLSelectElement).value = lang;
+
+// ── Auth ────────────────────────────────────────────────────────────────────
 
 document.getElementById('loginBtn')!.addEventListener('click', login);
 document.getElementById('adminPass')!.addEventListener('keydown', (e) => {
@@ -29,14 +66,14 @@ async function login(): Promise<void> {
     });
 
     if (res.status === 401) {
-      authError.textContent = 'Invalid credentials.';
+      authError.textContent = t('login.error.invalid', lang);
       authError.className = 'message error';
       credentials = '';
       return;
     }
 
     if (!res.ok) {
-      authError.textContent = 'Server error. Please try again.';
+      authError.textContent = t('login.error.server', lang);
       authError.className = 'message error';
       return;
     }
@@ -46,10 +83,12 @@ async function login(): Promise<void> {
     document.getElementById('dashboard')!.classList.remove('hidden');
     renderProjects(projects);
   } catch {
-    authError.textContent = 'Network error. Please try again.';
+    authError.textContent = t('login.error.network', lang);
     authError.className = 'message error';
   }
 }
+
+// ── Create project ──────────────────────────────────────────────────────────
 
 document.getElementById('projectForm')!.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -58,6 +97,7 @@ document.getElementById('projectForm')!.addEventListener('submit', async (e) => 
   document.getElementById('newLinkBox')!.classList.add('hidden');
 
   const center_label = (document.getElementById('centerLabel') as HTMLInputElement).value.trim();
+  const language = (document.getElementById('projectLang') as HTMLSelectElement).value;
   const branch_labels = ([1, 2, 3, 4, 5] as const)
     .map((i) => (document.getElementById(`bl${i}`) as HTMLInputElement).value.trim())
     .filter((l) => l);
@@ -69,7 +109,7 @@ document.getElementById('projectForm')!.addEventListener('submit', async (e) => 
         'Content-Type': 'application/json',
         Authorization: `Basic ${credentials}`,
       },
-      body: JSON.stringify({ center_label, branch_labels }),
+      body: JSON.stringify({ center_label, branch_labels, language }),
     });
 
     const data = (await res.json()) as { error?: string; uuid?: string };
@@ -86,22 +126,26 @@ document.getElementById('projectForm')!.addEventListener('submit', async (e) => 
     linkEl.textContent = link;
     document.getElementById('newLinkBox')!.classList.remove('hidden');
     (e.target as HTMLFormElement).reset();
+    // Reset language selector to browser default after form reset
+    (document.getElementById('projectLang') as HTMLSelectElement).value = lang;
 
     const listRes = await fetch('/api/projects', {
       headers: { Authorization: `Basic ${credentials}` },
     });
     renderProjects((await listRes.json()) as Project[]);
   } catch {
-    errEl.textContent = 'Network error. Please try again.';
+    errEl.textContent = t('create.error.network', lang);
     errEl.className = 'message error';
   }
 });
+
+// ── Render projects ─────────────────────────────────────────────────────────
 
 function renderProjects(projects: Project[]): void {
   const container = document.getElementById('projectList')!;
 
   if (projects.length === 0) {
-    container.innerHTML = '<p class="empty">No projects yet.</p>';
+    container.innerHTML = `<p class="empty">${t('projects.empty', lang)}</p>`;
     return;
   }
 
@@ -123,9 +167,13 @@ function renderProjects(projects: Project[]): void {
             )
             .join('') +
           '</ul>'
-        : '<p class="empty">No branch labels defined</p>';
+        : `<p class="empty">${t('projects.no_branch_labels', lang)}</p>`;
 
-    const submissionWord = project.submission_count === 1 ? 'submission' : 'submissions';
+    const count = project.submission_count ?? 0;
+    const submissionWord =
+      count === 1
+        ? t('projects.submissions_singular', lang)
+        : t('projects.submissions_plural', lang);
 
     card.innerHTML = `
       <div class="card-header">
@@ -135,13 +183,13 @@ function renderProjects(projects: Project[]): void {
       <div class="branches">${branchLabelsHtml}</div>
       <div class="link-row">
         <a href="${link}" target="_blank" class="submit-link">${link}</a>
-        <button class="copy-btn" onclick="copyText('${escapeHtml(link)}')">Copy</button>
+        <button class="copy-btn" onclick="copyText('${escapeHtml(link)}')">${t('projects.copy', lang)}</button>
       </div>
       <div class="link-row" style="margin-top:6px">
-        <a href="/graph/${project.uuid}" target="_blank" class="graph-link">View graph →</a>
+        <a href="/graph/${project.uuid}" target="_blank" class="graph-link">${t('projects.view_graph', lang)}</a>
       </div>
-      <p class="count" style="margin-top:10px">${project.submission_count ?? 0} ${submissionWord}</p>
-      <button class="toggle-btn" data-project-id="${project.id}">Show submissions</button>
+      <p class="count" style="margin-top:10px">${count} ${submissionWord}</p>
+      <button class="toggle-btn" data-project-id="${project.id}">${t('projects.show', lang)}</button>
       <div class="submissions hidden" id="submissions-${project.id}"></div>
     `;
 
@@ -153,22 +201,24 @@ function renderProjects(projects: Project[]): void {
   });
 }
 
+// ── Toggle submissions ──────────────────────────────────────────────────────
+
 async function toggleSubmissions(btn: HTMLButtonElement): Promise<void> {
   const projectId = parseInt(btn.dataset.projectId ?? '', 10);
   const submissionsEl = document.getElementById(`submissions-${projectId}`)!;
 
   if (!submissionsEl.classList.contains('hidden')) {
     submissionsEl.classList.add('hidden');
-    btn.textContent = 'Show submissions';
+    btn.textContent = t('projects.show', lang);
     return;
   }
 
-  btn.textContent = 'Hide submissions';
+  btn.textContent = t('projects.hide', lang);
   submissionsEl.classList.remove('hidden');
 
   if (submissionsEl.dataset.loaded) return;
   submissionsEl.dataset.loaded = 'true';
-  submissionsEl.textContent = 'Loading…';
+  submissionsEl.textContent = t('submissions.loading', lang);
 
   try {
     const res = await fetch('/api/nodes', {
@@ -178,7 +228,7 @@ async function toggleSubmissions(btn: HTMLButtonElement): Promise<void> {
     const filtered = nodes.filter((n) => n.project_id === projectId);
 
     if (filtered.length === 0) {
-      submissionsEl.innerHTML = '<p class="empty">No submissions yet.</p>';
+      submissionsEl.innerHTML = `<p class="empty">${t('submissions.empty', lang)}</p>`;
       return;
     }
 
@@ -199,7 +249,7 @@ async function toggleSubmissions(btn: HTMLButtonElement): Promise<void> {
         return `
         <div class="submission-card">
           <div class="card-header">
-            <strong>${escapeHtml(node.center_text)}</strong>
+            <strong>${escapeHtml(node.participant_name)}</strong>
             <span class="timestamp">${date}</span>
           </div>
           ${branchesHtml}
@@ -208,15 +258,17 @@ async function toggleSubmissions(btn: HTMLButtonElement): Promise<void> {
       })
       .join('');
   } catch {
-    submissionsEl.textContent = 'Failed to load submissions.';
+    submissionsEl.textContent = t('submissions.failed', lang);
   }
 }
+
+// ── Recompute connections ───────────────────────────────────────────────────
 
 document.getElementById('recomputeBtn')!.addEventListener('click', async () => {
   const btn = document.getElementById('recomputeBtn') as HTMLButtonElement;
   const msg = document.getElementById('recomputeMsg')!;
   btn.disabled = true;
-  btn.textContent = 'Recomputing…';
+  btn.textContent = t('tools.recomputing', lang);
   msg.className = 'message hidden';
 
   try {
@@ -225,20 +277,22 @@ document.getElementById('recomputeBtn')!.addEventListener('click', async () => {
       headers: { Authorization: `Basic ${credentials}` },
     });
     if (res.ok) {
-      msg.textContent = 'Connections recomputed successfully.';
+      msg.textContent = t('tools.recompute_success', lang);
       msg.className = 'message success';
     } else {
-      msg.textContent = 'Failed to recompute connections.';
+      msg.textContent = t('tools.recompute_error', lang);
       msg.className = 'message error';
     }
   } catch {
-    msg.textContent = 'Network error.';
+    msg.textContent = t('tools.network_error', lang);
     msg.className = 'message error';
   }
 
   btn.disabled = false;
-  btn.textContent = 'Recompute all connections';
+  btn.textContent = t('tools.recompute_btn', lang);
 });
+
+// ── Clipboard helpers ───────────────────────────────────────────────────────
 
 function copyLink(id: string): void {
   copyText(document.getElementById(id)!.textContent ?? '');

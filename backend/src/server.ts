@@ -11,6 +11,7 @@ import {
   createNode,
   getAllNodes,
   getNodesByProject,
+  getNodeCountByProject,
   getConnectionsByProject,
   recomputeAllConnections,
   saveBranchMedia,
@@ -64,11 +65,16 @@ function basicAuth(req: Request, res: Response, next: NextFunction): void {
   res.status(401).json({ error: 'Invalid credentials' });
 }
 
+function defaultParticipantName(n: number, language: string): string {
+  return language === 'fr' ? `Participant·e ${n}` : `Participant ${n}`;
+}
+
 // Admin: create a project
 app.post('/api/projects', basicAuth, (req: Request, res: Response) => {
-  const { center_label, branch_labels } = req.body as {
+  const { center_label, branch_labels, language } = req.body as {
     center_label?: string;
     branch_labels?: string[];
+    language?: string;
   };
 
   if (!center_label?.trim()) {
@@ -82,7 +88,8 @@ app.post('/api/projects', basicAuth, (req: Request, res: Response) => {
     return;
   }
 
-  const project = createProject(center_label.trim(), labels);
+  const lang = language === 'fr' ? 'fr' : 'en';
+  const project = createProject(center_label.trim(), labels, lang);
   res.status(201).json(project);
 });
 
@@ -98,7 +105,8 @@ app.get('/api/projects/:uuid', (req: Request<{ uuid: string }>, res: Response) =
     res.status(404).json({ error: 'Project not found' });
     return;
   }
-  res.json(project);
+  const next_participant_number = getNodeCountByProject(project.id) + 1;
+  res.json({ ...project, next_participant_number });
 });
 
 // Public: get all nodes for a project (for graph rendering)
@@ -123,9 +131,9 @@ app.get('/api/projects/:uuid/connections', (req: Request<{ uuid: string }>, res:
 
 // Public: submit a node (requires valid project_uuid)
 app.post('/api/nodes', (req: Request, res: Response) => {
-  const { project_uuid, center_text, branches } = req.body as {
+  const { project_uuid, participant_name, branches } = req.body as {
     project_uuid?: string;
-    center_text?: string;
+    participant_name?: string;
     branches?: string[];
   };
 
@@ -140,17 +148,16 @@ app.post('/api/nodes', (req: Request, res: Response) => {
     return;
   }
 
-  if (!center_text?.trim()) {
-    res.status(400).json({ error: 'center_text is required' });
-    return;
-  }
-
   if (!Array.isArray(branches) || branches.length > 5) {
     res.status(400).json({ error: 'branches must be an array of up to 5 items' });
     return;
   }
 
-  const { nodeId, branchIds } = createNode(project.id, center_text.trim(), branches);
+  const name =
+    participant_name?.trim() ||
+    defaultParticipantName(getNodeCountByProject(project.id) + 1, project.language);
+
+  const { nodeId, branchIds } = createNode(project.id, name, branches);
   res.status(201).json({ id: nodeId, branchIds });
 });
 

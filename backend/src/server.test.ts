@@ -61,6 +61,26 @@ describe('POST /api/projects', () => {
     expect(res.body.uuid).toMatch(/^[0-9a-f-]{36}$/);
     expect(typeof res.body.id).toBe('number');
   });
+
+  it('stores language when provided', async () => {
+    const { body } = await request(app)
+      .post('/api/projects')
+      .set(authHeader)
+      .send({ center_label: 'Q', language: 'fr' });
+    expect(body.uuid).toBeDefined();
+
+    const projectRes = await request(app).get(`/api/projects/${body.uuid}`);
+    expect(projectRes.body.language).toBe('fr');
+  });
+
+  it('defaults language to en when not provided', async () => {
+    const { body } = await request(app)
+      .post('/api/projects')
+      .set(authHeader)
+      .send({ center_label: 'Q' });
+    const projectRes = await request(app).get(`/api/projects/${body.uuid}`);
+    expect(projectRes.body.language).toBe('en');
+  });
 });
 
 // ── GET /api/projects ──────────────────────────────────────────────────────
@@ -105,37 +125,36 @@ describe('GET /api/projects/:uuid', () => {
     expect(res.body.center_label).toBe('Test');
     expect(res.body.branch_labels).toHaveLength(2);
   });
+
+  it('returns next_participant_number', async () => {
+    const { body } = await request(app)
+      .post('/api/projects')
+      .set(authHeader)
+      .send({ center_label: 'Q' });
+
+    const res = await request(app).get(`/api/projects/${body.uuid}`);
+    expect(res.body.next_participant_number).toBe(1);
+
+    await request(app).post('/api/nodes').send({ project_uuid: body.uuid, branches: [] });
+    const res2 = await request(app).get(`/api/projects/${body.uuid}`);
+    expect(res2.body.next_participant_number).toBe(2);
+  });
 });
 
 // ── POST /api/nodes ────────────────────────────────────────────────────────
 
 describe('POST /api/nodes', () => {
   it('returns 400 when project_uuid is missing', async () => {
-    const res = await request(app).post('/api/nodes').send({ center_text: 'answer' });
+    const res = await request(app).post('/api/nodes').send({ participant_name: 'Alice' });
     expect(res.status).toBe(400);
   });
 
   it('returns 404 for unknown project_uuid', async () => {
     const res = await request(app).post('/api/nodes').send({
       project_uuid: '00000000-0000-0000-0000-000000000000',
-      center_text: 'answer',
       branches: [],
     });
     expect(res.status).toBe(404);
-  });
-
-  it('returns 400 when center_text is missing', async () => {
-    const { body: project } = await request(app)
-      .post('/api/projects')
-      .set(authHeader)
-      .send({ center_label: 'Q' });
-
-    const res = await request(app).post('/api/nodes').send({
-      project_uuid: project.uuid,
-      center_text: '',
-      branches: [],
-    });
-    expect(res.status).toBe(400);
   });
 
   it('returns 400 when branches has more than 5 items', async () => {
@@ -148,7 +167,6 @@ describe('POST /api/nodes', () => {
       .post('/api/nodes')
       .send({
         project_uuid: project.uuid,
-        center_text: 'answer',
         branches: ['a', 'b', 'c', 'd', 'e', 'f'],
       });
     expect(res.status).toBe(400);
@@ -164,12 +182,51 @@ describe('POST /api/nodes', () => {
       .post('/api/nodes')
       .send({
         project_uuid: project.uuid,
-        center_text: 'My answer',
+        participant_name: 'Alice',
         branches: ['Branch response A', 'Branch response B'],
       });
     expect(res.status).toBe(201);
     expect(typeof res.body.id).toBe('number');
     expect(res.body.branchIds).toHaveLength(2);
+  });
+
+  it('auto-generates participant_name when not provided (en)', async () => {
+    const { body: project } = await request(app)
+      .post('/api/projects')
+      .set(authHeader)
+      .send({ center_label: 'Q', language: 'en' });
+
+    await request(app).post('/api/nodes').send({ project_uuid: project.uuid, branches: [] });
+
+    const nodesRes = await request(app).get(`/api/projects/${project.uuid}/nodes`);
+    expect(nodesRes.body[0].participant_name).toBe('Participant 1');
+  });
+
+  it('auto-generates participant_name in French when project language is fr', async () => {
+    const { body: project } = await request(app)
+      .post('/api/projects')
+      .set(authHeader)
+      .send({ center_label: 'Q', language: 'fr' });
+
+    await request(app).post('/api/nodes').send({ project_uuid: project.uuid, branches: [] });
+
+    const nodesRes = await request(app).get(`/api/projects/${project.uuid}/nodes`);
+    expect(nodesRes.body[0].participant_name).toBe('Participant·e 1');
+  });
+
+  it('increments participant number for subsequent submissions', async () => {
+    const { body: project } = await request(app)
+      .post('/api/projects')
+      .set(authHeader)
+      .send({ center_label: 'Q' });
+
+    await request(app).post('/api/nodes').send({ project_uuid: project.uuid, branches: [] });
+    await request(app).post('/api/nodes').send({ project_uuid: project.uuid, branches: [] });
+
+    const nodesRes = await request(app).get(`/api/projects/${project.uuid}/nodes`);
+    const names = nodesRes.body.map((n: { participant_name: string }) => n.participant_name);
+    expect(names).toContain('Participant 1');
+    expect(names).toContain('Participant 2');
   });
 });
 
@@ -191,7 +248,7 @@ describe('GET /api/projects/:uuid/nodes', () => {
       .post('/api/nodes')
       .send({
         project_uuid: project.uuid,
-        center_text: 'answer',
+        participant_name: 'Alice',
         branches: ['branch text'],
       });
 
@@ -199,6 +256,7 @@ describe('GET /api/projects/:uuid/nodes', () => {
     expect(res.status).toBe(200);
     expect(res.body).toHaveLength(1);
     expect(res.body[0].branches).toHaveLength(1);
+    expect(res.body[0].participant_name).toBe('Alice');
   });
 });
 
@@ -220,10 +278,10 @@ describe('GET /api/projects/:uuid/connections', () => {
 
     await request(app)
       .post('/api/nodes')
-      .send({ project_uuid: project.uuid, center_text: 'A', branches: ['ocean climate forest'] });
+      .send({ project_uuid: project.uuid, branches: ['ocean climate forest'] });
     await request(app)
       .post('/api/nodes')
-      .send({ project_uuid: project.uuid, center_text: 'B', branches: ['ocean nature climate'] });
+      .send({ project_uuid: project.uuid, branches: ['ocean nature climate'] });
 
     const res = await request(app).get(`/api/projects/${project.uuid}/connections`);
     expect(res.status).toBe(200);
@@ -246,9 +304,7 @@ describe('GET /api/nodes', () => {
       .set(authHeader)
       .send({ center_label: 'Q' });
 
-    await request(app)
-      .post('/api/nodes')
-      .send({ project_uuid: project.uuid, center_text: 'answer', branches: [] });
+    await request(app).post('/api/nodes').send({ project_uuid: project.uuid, branches: [] });
 
     const res = await request(app).get('/api/nodes').set(authHeader);
     expect(res.status).toBe(200);
