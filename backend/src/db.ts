@@ -1,5 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { randomUUID } from 'crypto';
+import fs from 'fs';
 import path from 'path';
 import { extractKeywordsFromTexts, intersect } from './keywords';
 
@@ -63,6 +64,7 @@ type NodeDbRow = {
 // ── Database setup ─────────────────────────────────────────────────────────
 
 const DB_PATH = process.env.DB_PATH ?? path.join(__dirname, '..', 'data.db');
+fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 const db = new DatabaseSync(DB_PATH);
 
 db.exec(`
