@@ -3,7 +3,6 @@ import { Request, Response, NextFunction } from 'express';
 export function basicAuth(req: Request, res: Response, next: NextFunction): void {
   const authHeader = req.headers['authorization'];
   if (!authHeader?.startsWith('Basic ')) {
-    res.set('WWW-Authenticate', 'Basic realm="Admin"');
     res.status(401).json({ error: 'Authentication required' });
     return;
   }
@@ -18,6 +17,5 @@ export function basicAuth(req: Request, res: Response, next: NextFunction): void
     return;
   }
 
-  res.set('WWW-Authenticate', 'Basic realm="Admin"');
   res.status(401).json({ error: 'Invalid credentials' });
 }

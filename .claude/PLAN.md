@@ -140,7 +140,8 @@ Target: Railway (Docker-based). Full hardening before first deploy.
 - [x] Refactor `server.ts`: split into `app.ts` (setup), `server.ts` (entry point), `routes/`, `middleware/auth.ts`, `domain.ts`, `config.ts`; added unit tests for auth + domain
 - [x] Externalize `UPLOADS_DIR` + update `.env.example`
 - [x] Pino structured logging (`logger.ts`, `pino-http` middleware, replaces `console.log`)
-- [ ] Dockerfile + `.dockerignore`
+- [x] Dockerfile + `.dockerignore`
+- [x] Remove `WWW-Authenticate` header from 401s — prevents browser native auth dialog
 - [ ] GitHub Actions CI
 - [ ] Deploy on Railway (persistent volume, env vars, health check)
 
@@ -154,6 +155,31 @@ Frontend files (`admin.ts`, `graph.ts`, `submit.ts`, `i18n.ts`) are untested —
 - [ ] Cover critical user flows: create project (admin), submit participation form, view graph
 - [ ] Cover file upload flow (media attachment per branch)
 - [ ] Run e2e in CI against the built app
+
+---
+
+## Step 6 — Admin session persistence (localStorage + 1h expiry)
+
+- [ ] On successful login, save `btoa(user:pass)` + expiry timestamp to `localStorage`
+- [ ] On page load, auto-verify stored credentials against `/api/projects`; skip login form if valid
+- [ ] Clear `localStorage` on 401 or explicit logout
+
+---
+
+## Step 7 — JWT-based admin auth (replaces Basic Auth)
+
+- [ ] `POST /api/admin/login` — verify ADMIN_USER/ADMIN_PASS, return signed JWT (1h expiry)
+- [ ] `verifyJwt` middleware replaces `basicAuth` on all admin routes
+- [ ] Frontend: swap `Authorization: Basic` → `Authorization: Bearer <token>`; store token in `localStorage`
+- [ ] Add `jsonwebtoken` dep; remove `express-rate-limit` upload limiter workaround if no longer needed
+
+---
+
+## Step 8 — Project management (edit / delete)
+
+- [ ] `DELETE /api/projects/:uuid` (admin) — delete project + cascade (nodes, branches, connections)
+- [ ] `PATCH /api/projects/:uuid` (admin) — edit center label, branch labels, language
+- [ ] Admin UI: edit button on project card (inline form or modal), delete button with confirmation
 
 ---
 
