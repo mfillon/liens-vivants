@@ -11,7 +11,7 @@ import {
   getProjectByUUID,
   recomputeAllConnections,
   saveBranchMedia,
-} from './db';
+} from '@/db';
 
 afterEach(() => {
   _resetForTests();

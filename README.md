@@ -30,40 +30,40 @@ A web app for collaborative mental mapping. Admins create projects with structur
 
 ## Technical stack
 
-| Layer | Technology |
-|-------|-----------|
-| Server | Node.js 22.5+ + Express |
-| Database | SQLite via built-in `node:sqlite` (`--experimental-sqlite`) |
-| Frontend | Vite 8 + Vanilla JS (ES Modules) |
-| Graph | `3d-force-graph` + `three-spritetext` (WebGL / Three.js) |
-| File uploads | `multer` — stored in `backend/uploads/` |
-| Auth | HTTP Basic Auth on all admin routes |
-| Config | `.env` via `dotenv` |
-| Package manager | pnpm 10 (workspaces) |
+| Layer           | Technology                                                  |
+| --------------- | ----------------------------------------------------------- |
+| Server          | Node.js 22.5+ + Express                                     |
+| Database        | SQLite via built-in `node:sqlite` (`--experimental-sqlite`) |
+| Frontend        | Vite 8 + Vanilla JS (ES Modules)                            |
+| Graph           | `3d-force-graph` + `three-spritetext` (WebGL / Three.js)    |
+| File uploads    | `multer` — stored in `backend/uploads/`                     |
+| Auth            | HTTP Basic Auth on all admin routes                         |
+| Config          | `.env` via `dotenv`                                         |
+| Package manager | pnpm 10 (workspaces)                                        |
 
 **Data model:**
 
-| Table | Description |
-|-------|-------------|
-| `projects` | One per admin session — uuid, center_label, language |
-| `project_branch_labels` | Up to 5 labels per project |
-| `nodes` | One per participant submission — stores participant_name (via center_text column) |
-| `branches` | Up to 5 branch answers per node; optional `media_path` + `media_type` |
-| `connections` | Auto-computed keyword overlaps between nodes |
+| Table                   | Description                                                                       |
+| ----------------------- | --------------------------------------------------------------------------------- |
+| `projects`              | One per admin session — uuid, center_label, language                              |
+| `project_branch_labels` | Up to 5 labels per project                                                        |
+| `nodes`                 | One per participant submission — stores participant_name (via center_text column) |
+| `branches`              | Up to 5 branch answers per node; optional `media_path` + `media_type`             |
+| `connections`           | Auto-computed keyword overlaps between nodes                                      |
 
 **API:**
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| POST | `/api/projects` | Basic | Create a project (accepts `language`: `en`\|`fr`) |
-| GET | `/api/projects` | Basic | List all projects |
-| GET | `/api/projects/:uuid` | — | Get project labels + `next_participant_number` (for form) |
-| GET | `/api/projects/:uuid/nodes` | — | Get all nodes for a project |
-| GET | `/api/projects/:uuid/connections` | — | Get keyword connections |
-| POST | `/api/nodes` | — | Submit a node (`project_uuid` required, `participant_name` optional — auto-generated if missing) |
-| GET | `/api/nodes` | Basic | List all nodes with branches |
-| POST | `/api/branches/:id/media` | — | Upload media for a branch (image/audio/video, max 50 MB) |
-| POST | `/api/admin/recompute-connections` | Basic | Recompute all connections |
+| Method | Path                               | Auth  | Description                                                                                      |
+| ------ | ---------------------------------- | ----- | ------------------------------------------------------------------------------------------------ |
+| POST   | `/api/projects`                    | Basic | Create a project (accepts `language`: `en`\|`fr`)                                                |
+| GET    | `/api/projects`                    | Basic | List all projects                                                                                |
+| GET    | `/api/projects/:uuid`              | —     | Get project labels + `next_participant_number` (for form)                                        |
+| GET    | `/api/projects/:uuid/nodes`        | —     | Get all nodes for a project                                                                      |
+| GET    | `/api/projects/:uuid/connections`  | —     | Get keyword connections                                                                          |
+| POST   | `/api/nodes`                       | —     | Submit a node (`project_uuid` required, `participant_name` optional — auto-generated if missing) |
+| GET    | `/api/nodes`                       | Basic | List all nodes with branches                                                                     |
+| POST   | `/api/branches/:id/media`          | —     | Upload media for a branch (image/audio/video, max 50 MB)                                         |
+| POST   | `/api/admin/recompute-connections` | Basic | Recompute all connections                                                                        |
 
 ---
 
@@ -85,11 +85,11 @@ pnpm dev
 
 > You will see `ExperimentalWarning: SQLite is an experimental feature` on startup. This is expected and harmless.
 
-| URL | Description |
-|-----|-------------|
-| `http://localhost:5173/admin.html` | Admin dashboard |
+| URL                                   | Description                 |
+| ------------------------------------- | --------------------------- |
+| `http://localhost:5173/admin.html`    | Admin dashboard             |
 | `http://localhost:5173/submit/<uuid>` | Participant submission form |
-| `http://localhost:5173/graph/<uuid>` | Interactive 3D graph |
+| `http://localhost:5173/graph/<uuid>`  | Interactive 3D graph        |
 
 **Production build:**
 

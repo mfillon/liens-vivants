@@ -6,9 +6,9 @@
     "dev": "concurrently \"pnpm --dir backend dev\" \"pnpm --dir frontend dev\"",
     "build": "pnpm --dir backend build && pnpm --dir frontend build",
     "start": "pnpm --dir backend start",
-    "lint": "oxlint backend/src frontend/src",
-    "format": "oxfmt backend/src frontend/src",
-    "format:check": "oxfmt --check backend/src frontend/src",
+    "lint": "oxlint .",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
     "typecheck": "pnpm --dir backend typecheck && pnpm --dir frontend typecheck",
     "test": "pnpm --dir backend test && pnpm --dir frontend test"
   },

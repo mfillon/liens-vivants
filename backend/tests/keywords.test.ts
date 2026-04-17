@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractKeywords, extractKeywordsFromTexts, intersect } from './keywords';
+import { extractKeywords, extractKeywordsFromTexts, intersect } from '@/keywords';
 
 describe('extractKeywords', () => {
   it('returns empty set for empty string', () => {

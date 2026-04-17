@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest';
-import type { Branch } from './types';
-import { branchesHtml, escapeHtml, mediaHtml, truncate } from './utils';
+import type { Branch } from '@/types';
+import { branchesHtml, escapeHtml, mediaHtml, truncate } from '@/utils';
 
 // ── escapeHtml ─────────────────────────────────────────────────────────────
 

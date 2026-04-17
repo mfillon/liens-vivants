@@ -44,6 +44,7 @@ Runtime: `node:sqlite` is a built-in Node.js 22.5+ module; it requires the `--ex
 ### Frontend (`frontend/src/`)
 
 Three TypeScript entry points (one per HTML page):
+
 - **`admin.ts`** — project CRUD, submission list, recompute-connections button
 - **`submit.ts`** — two-step participant form (node creation → media uploads per branch)
 - **`graph.ts`** — 3D force-directed graph using `3d-force-graph` (Three.js/WebGL), orbit camera, sidebar on click
@@ -56,13 +57,13 @@ In dev, Vite proxies `/api` and `/uploads` to `http://localhost:3000`. A custom 
 
 ### Data model
 
-| Table | Purpose |
-|---|---|
-| `projects` | One row per project (uuid, center_label, language) |
-| `project_branch_labels` | Labels for each branch position (1–N) |
-| `nodes` | One row per participant submission (center_text = participant name) |
-| `branches` | One row per answer (node_id, position, text, media_path, media_type) |
-| `connections` | Auto-computed keyword links between branch pairs (node_id_a, branch_position_a ↔ node_id_b, branch_position_b, shared_keywords) |
+| Table                   | Purpose                                                                                                                         |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `projects`              | One row per project (uuid, center_label, language)                                                                              |
+| `project_branch_labels` | Labels for each branch position (1–N)                                                                                           |
+| `nodes`                 | One row per participant submission (center_text = participant name)                                                             |
+| `branches`              | One row per answer (node_id, position, text, media_path, media_type)                                                            |
+| `connections`           | Auto-computed keyword links between branch pairs (node_id_a, branch_position_a ↔ node_id_b, branch_position_b, shared_keywords) |
 
 Connections are computed on every `POST /api/nodes` and can be fully recomputed via `POST /api/admin/recompute-connections`.
 

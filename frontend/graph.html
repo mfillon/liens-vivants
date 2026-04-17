@@ -1,145 +1,221 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mental Map — Graph</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0f1117;
-      color: #e0e0e0;
-      display: flex;
-      height: 100vh;
-      overflow: hidden;
-      position: relative;
-    }
-
-    #graph-3d { flex: 1; position: relative; width: 0; height: 100%; overflow: hidden; }
-
-    #orbit-btn {
-      position: fixed;
-      bottom: 16px;
-      left: 16px;
-      z-index: 10;
-      background: rgba(26, 29, 39, 0.85);
-      color: #aaa;
-      border: 1px solid #2a2d3a;
-      border-radius: 6px;
-      padding: 6px 14px;
-      font-size: 0.8rem;
-      cursor: pointer;
-      backdrop-filter: blur(4px);
-    }
-    #orbit-btn:hover { color: #e0e0e0; border-color: #4a4d5a; }
-
-    #sidebar {
-      width: 420px;
-      background: #1a1d27;
-      border-left: 1px solid #2a2d3a;
-      padding: 24px 20px;
-      overflow-y: auto;
-      flex-shrink: 0;
-      position: relative;
-      z-index: 1;
-    }
-    #sidebar h1 { font-size: 1rem; color: #aaa; margin-bottom: 6px; font-weight: 400; }
-    .stats { font-size: 0.8rem; color: #555; margin-bottom: 20px; }
-    #sidebar h2 { font-size: 0.85rem; color: #666; margin-bottom: 12px; font-weight: 400; }
-
-    #detail-content .node-block { margin-bottom: 16px; }
-    #detail-content .center {
-      font-size: 1rem;
-      font-weight: 600;
-      color: #f5a623;
-      margin-bottom: 8px;
-    }
-    #detail-content ul { list-style: none; display: flex; flex-direction: column; gap: 5px; }
-    #detail-content li {
-      padding: 5px 10px;
-      background: #2a2d3a;
-      border-radius: 4px;
-      font-size: 0.875rem;
-      color: #ccc;
-    }
-    .position { font-weight: 600; color: #4a90e2; margin-right: 4px; }
-
-    .shared-tag {
-      display: inline-block;
-      background: #1e3a5f;
-      color: #7eb8f7;
-      border-radius: 4px;
-      padding: 2px 7px;
-      font-size: 0.75rem;
-      margin: 0 3px 4px 0;
-    }
-    .shared-row { margin-bottom: 12px; flex-wrap: wrap; display: flex; }
-
-    .divider { border: none; border-top: 1px solid #2a2d3a; margin: 12px 0; }
-
-    .empty { color: #555; font-size: 0.875rem; font-style: italic; }
-
-    .branch-media { display: block; margin-top: 6px; max-width: 100%; border-radius: 4px; }
-    img.branch-media { cursor: zoom-in; }
-    audio.branch-media, video.branch-media { width: 100%; }
-
-    #lightbox {
-      display: none;
-      position: fixed; inset: 0; z-index: 100;
-      background: rgba(0,0,0,0.9);
-      align-items: center; justify-content: center;
-      cursor: zoom-out;
-    }
-    #lightbox.open { display: flex; }
-    #lightbox img { max-width: 90vw; max-height: 90vh; border-radius: 6px; object-fit: contain; }
-
-    #error {
-      position: absolute; top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      color: #f56565; font-size: 1.1rem; text-align: center;
-      display: none;
-    }
-  </style>
-</head>
-<body>
-  <div id="graph-3d">
-    <div id="error"></div>
-  </div>
-  <button id="orbit-btn">⏸ Pause orbit</button>
-  <div id="sidebar">
-    <h1 id="project-title">Loading…</h1>
-    <p class="stats" id="stats"></p>
-    <h2 id="sidebar-hint">Click a node or connection to explore</h2>
-    <div id="detail-content"></div>
-  </div>
-
-  <div id="lightbox"><img id="lightbox-img" src="" alt=""></div>
-
-  <script type="module" src="/src/graph.ts"></script>
-  <script>
-    const lightbox = document.getElementById('lightbox');
-    const lightboxImg = document.getElementById('lightbox-img');
-
-    document.getElementById('detail-content').addEventListener('click', e => {
-      if (e.target.tagName === 'IMG' && e.target.classList.contains('branch-media')) {
-        lightboxImg.src = e.target.src;
-        lightbox.classList.add('open');
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mental Map — Graph</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
       }
-    });
 
-    lightbox.addEventListener('click', () => {
-      lightbox.classList.remove('open');
-      lightboxImg.src = '';
-    });
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #0f1117;
+        color: #e0e0e0;
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
+        position: relative;
+      }
 
-    document.addEventListener('keydown', e => {
-      if (e.key === 'Escape') {
+      #graph-3d {
+        flex: 1;
+        position: relative;
+        width: 0;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      #orbit-btn {
+        position: fixed;
+        bottom: 16px;
+        left: 16px;
+        z-index: 10;
+        background: rgba(26, 29, 39, 0.85);
+        color: #aaa;
+        border: 1px solid #2a2d3a;
+        border-radius: 6px;
+        padding: 6px 14px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        backdrop-filter: blur(4px);
+      }
+      #orbit-btn:hover {
+        color: #e0e0e0;
+        border-color: #4a4d5a;
+      }
+
+      #sidebar {
+        width: 420px;
+        background: #1a1d27;
+        border-left: 1px solid #2a2d3a;
+        padding: 24px 20px;
+        overflow-y: auto;
+        flex-shrink: 0;
+        position: relative;
+        z-index: 1;
+      }
+      #sidebar h1 {
+        font-size: 1rem;
+        color: #aaa;
+        margin-bottom: 6px;
+        font-weight: 400;
+      }
+      .stats {
+        font-size: 0.8rem;
+        color: #555;
+        margin-bottom: 20px;
+      }
+      #sidebar h2 {
+        font-size: 0.85rem;
+        color: #666;
+        margin-bottom: 12px;
+        font-weight: 400;
+      }
+
+      #detail-content .node-block {
+        margin-bottom: 16px;
+      }
+      #detail-content .center {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #f5a623;
+        margin-bottom: 8px;
+      }
+      #detail-content ul {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      #detail-content li {
+        padding: 5px 10px;
+        background: #2a2d3a;
+        border-radius: 4px;
+        font-size: 0.875rem;
+        color: #ccc;
+      }
+      .position {
+        font-weight: 600;
+        color: #4a90e2;
+        margin-right: 4px;
+      }
+
+      .shared-tag {
+        display: inline-block;
+        background: #1e3a5f;
+        color: #7eb8f7;
+        border-radius: 4px;
+        padding: 2px 7px;
+        font-size: 0.75rem;
+        margin: 0 3px 4px 0;
+      }
+      .shared-row {
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+        display: flex;
+      }
+
+      .divider {
+        border: none;
+        border-top: 1px solid #2a2d3a;
+        margin: 12px 0;
+      }
+
+      .empty {
+        color: #555;
+        font-size: 0.875rem;
+        font-style: italic;
+      }
+
+      .branch-media {
+        display: block;
+        margin-top: 6px;
+        max-width: 100%;
+        border-radius: 4px;
+      }
+      img.branch-media {
+        cursor: zoom-in;
+      }
+      audio.branch-media,
+      video.branch-media {
+        width: 100%;
+      }
+
+      #lightbox {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        background: rgba(0, 0, 0, 0.9);
+        align-items: center;
+        justify-content: center;
+        cursor: zoom-out;
+      }
+      #lightbox.open {
+        display: flex;
+      }
+      #lightbox img {
+        max-width: 90vw;
+        max-height: 90vh;
+        border-radius: 6px;
+        object-fit: contain;
+      }
+
+      #error {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #f56565;
+        font-size: 1.1rem;
+        text-align: center;
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="graph-3d">
+      <div id="error"></div>
+    </div>
+    <button id="orbit-btn">⏸ Pause orbit</button>
+    <div id="sidebar">
+      <h1 id="project-title">Loading…</h1>
+      <p class="stats" id="stats"></p>
+      <h2 id="sidebar-hint">Click a node or connection to explore</h2>
+      <div id="detail-content"></div>
+    </div>
+
+    <div id="lightbox"><img id="lightbox-img" src="" alt="" /></div>
+
+    <script type="module" src="/src/graph.ts"></script>
+    <script>
+      const lightbox = document.getElementById('lightbox');
+      const lightboxImg = document.getElementById('lightbox-img');
+
+      document.getElementById('detail-content').addEventListener('click', (e) => {
+        if (e.target.tagName === 'IMG' && e.target.classList.contains('branch-media')) {
+          lightboxImg.src = e.target.src;
+          lightbox.classList.add('open');
+        }
+      });
+
+      lightbox.addEventListener('click', () => {
         lightbox.classList.remove('open');
         lightboxImg.src = '';
-      }
-    });
-  </script>
-</body>
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          lightbox.classList.remove('open');
+          lightboxImg.src = '';
+        }
+      });
+    </script>
+  </body>
 </html>
