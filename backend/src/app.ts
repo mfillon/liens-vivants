@@ -13,6 +13,7 @@ import { adminRouter } from './routes/admin';
 
 export const app = express();
 
+app.set('trust proxy', 1);
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(
   rateLimit({ windowMs: 15 * 60 * 1000, max: 200, standardHeaders: true, legacyHeaders: false }),
