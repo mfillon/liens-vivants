@@ -38,9 +38,9 @@ COPY --from=builder /build/frontend/dist ./frontend/dist
 RUN mkdir -p /data/uploads
 
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
-  && chown -R appuser:appgroup /app /data
+  && chown -R appuser:appgroup /app
 
-USER appuser
+USER root
 
 ENV NODE_ENV=production
 ENV PORT=3000
