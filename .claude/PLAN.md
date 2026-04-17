@@ -138,8 +138,8 @@ Target: Railway (Docker-based). Full hardening before first deploy.
 - [x] Fix build script + code quality cleanup (test separation, path aliases, lint/format scripts)
 - [x] Security hardening: `helmet`, `express-rate-limit`, `GET /health`
 - [x] Refactor `server.ts`: split into `app.ts` (setup), `server.ts` (entry point), `routes/`, `middleware/auth.ts`, `domain.ts`, `config.ts`; added unit tests for auth + domain
-- [ ] Externalize `UPLOADS_DIR` + update `.env.example`
-- [ ] Pino structured logging
+- [x] Externalize `UPLOADS_DIR` + update `.env.example`
+- [x] Pino structured logging (`logger.ts`, `pino-http` middleware, replaces `console.log`)
 - [ ] Dockerfile + `.dockerignore`
 - [ ] GitHub Actions CI
 - [ ] Deploy on Railway (persistent volume, env vars, health check)
