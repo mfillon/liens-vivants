@@ -158,11 +158,11 @@ Frontend files (`admin.ts`, `graph.ts`, `submit.ts`, `i18n.ts`) are untested —
 
 ---
 
-## Step 6 — Admin session persistence (localStorage + 1h expiry)
+## Step 6 — Admin session persistence (localStorage + 1h expiry) ✓
 
-- [ ] On successful login, save `btoa(user:pass)` + expiry timestamp to `localStorage`
-- [ ] On page load, auto-verify stored credentials against `/api/projects`; skip login form if valid
-- [ ] Clear `localStorage` on 401 or explicit logout
+- [x] On successful login, save `btoa(user:pass)` + expiry timestamp to `localStorage`
+- [x] On page load, auto-verify stored credentials against `/api/projects`; skip login form if valid
+- [x] Clear `localStorage` on 401 or explicit logout
 
 ---
 

@@ -12,6 +12,34 @@ declare global {
 const lang: Lang = detectLang();
 let credentials = '';
 
+const SESSION_KEY = 'admin_session';
+const SESSION_TTL = 60 * 60 * 1000; // 1 hour
+
+function saveSession(creds: string): void {
+  localStorage.setItem(SESSION_KEY, JSON.stringify({ credentials: creds, expiry: Date.now() + SESSION_TTL }));
+}
+
+function loadSession(): string | null {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const { credentials: creds, expiry } = JSON.parse(raw) as { credentials: string; expiry: number };
+    if (Date.now() > expiry) { localStorage.removeItem(SESSION_KEY); return null; }
+    return creds;
+  } catch { return null; }
+}
+
+function clearSession(): void {
+  localStorage.removeItem(SESSION_KEY);
+  credentials = '';
+}
+
+function showDashboard(projects: Project[]): void {
+  document.getElementById('authForm')!.classList.add('hidden');
+  document.getElementById('dashboard')!.classList.remove('hidden');
+  renderProjects(projects);
+}
+
 // ── Apply i18n to static elements ──────────────────────────────────────────
 
 document.title = t('page.title', lang);
@@ -52,6 +80,19 @@ document.getElementById('adminPass')!.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') login();
 });
 
+// Auto-restore session on page load
+void (async () => {
+  const stored = loadSession();
+  if (!stored) return;
+  credentials = stored;
+  const res = await fetch('/api/projects', { headers: { Authorization: `Basic ${credentials}` } }).catch(() => null);
+  if (res?.ok) {
+    showDashboard((await res.json()) as Project[]);
+  } else {
+    clearSession();
+  }
+})();
+
 async function login(): Promise<void> {
   const user = (document.getElementById('adminUser') as HTMLInputElement).value;
   const pass = (document.getElementById('adminPass') as HTMLInputElement).value;
@@ -68,7 +109,7 @@ async function login(): Promise<void> {
     if (res.status === 401) {
       authError.textContent = t('login.error.invalid', lang);
       authError.className = 'message error';
-      credentials = '';
+      clearSession();
       return;
     }
 
@@ -78,10 +119,9 @@ async function login(): Promise<void> {
       return;
     }
 
+    saveSession(credentials);
     const projects = (await res.json()) as Project[];
-    document.getElementById('authForm')!.classList.add('hidden');
-    document.getElementById('dashboard')!.classList.remove('hidden');
-    renderProjects(projects);
+    showDashboard(projects);
   } catch {
     authError.textContent = t('login.error.network', lang);
     authError.className = 'message error';
