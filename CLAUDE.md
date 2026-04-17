@@ -4,28 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-Run from the repo root unless otherwise noted.
+Scripts are defined in the root `package.json` and delegate to sub-packages. Run from the repo root.
 
-```bash
-pnpm dev              # start backend (port 3000) + frontend (port 5173) concurrently
-pnpm build            # build frontend to frontend/dist/
-pnpm start            # run production backend (serves frontend/dist/ as static files)
+To run a single test file: `pnpm --dir backend exec vitest run tests/db.test.ts`
 
-pnpm typecheck        # tsc --noEmit for both packages
-pnpm lint             # oxlint on backend/src and frontend/src
-pnpm format           # oxfmt (auto-fix) on backend/src and frontend/src
-pnpm format:check     # oxfmt --check (no write)
-pnpm test             # vitest run for both packages
-
-# Run checks for a single package
-pnpm --dir backend test
-pnpm --dir frontend test
-
-# Run a single test file
-pnpm --dir backend exec vitest run src/db.test.ts
-```
-
-**After every code change**: `pnpm typecheck && pnpm lint && pnpm format && pnpm test`
+**After every change** (including unplanned ones): run `pnpm typecheck && pnpm lint && pnpm format && pnpm test`, then update `.claude/PLAN.md`.
 
 ## Architecture
 

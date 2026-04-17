@@ -135,16 +135,13 @@ A webapp where users submit mental map nodes (center concept + branches), data i
 
 Target: Railway (Docker-based). Full hardening before first deploy.
 
-- [ ] Fix root `pnpm build` to compile backend TypeScript (currently frontend only)
-- [ ] `helmet` (CSP disabled — Vite MPA + WebGL) + `express-rate-limit` (global 200/15min, uploads 50/hr)
-- [ ] `GET /health` endpoint (required for Railway health checks)
-- [ ] Externalize `UPLOADS_DIR` as env var (like `DB_PATH` already is)
-- [ ] Pino structured logging: `logger.ts` singleton, `pino-http` middleware, replace `console.log`
-- [ ] Dockerfile (multi-stage: build stage → minimal runtime on `node:22-alpine`, persistent data at `/data/`)
-- [ ] `.dockerignore`
-- [ ] GitHub Actions CI: lint → format:check → typecheck → test → build → docker build check
-- [ ] Deploy on Railway: persistent volume at `/data`, env vars, health check, auto-deploy from `main`
-- [ ] `.env.example` updated with `DB_PATH`, `UPLOADS_DIR`, `NODE_ENV`
+- [x] Fix build script + code quality cleanup (test separation, path aliases, lint/format scripts)
+- [x] Security hardening: `helmet`, `express-rate-limit`, `GET /health`
+- [ ] Externalize `UPLOADS_DIR` + update `.env.example`
+- [ ] Pino structured logging
+- [ ] Dockerfile + `.dockerignore`
+- [ ] GitHub Actions CI
+- [ ] Deploy on Railway (persistent volume, env vars, health check)
 
 ---
 
