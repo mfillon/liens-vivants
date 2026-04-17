@@ -32,7 +32,7 @@ A web app for collaborative mental mapping. Admins create projects with structur
 
 | Layer           | Technology                                                  |
 | --------------- | ----------------------------------------------------------- |
-| Server          | Node.js 22.5+ + Express                                     |
+| Server          | Node.js LTS + Express                                       |
 | Database        | SQLite via built-in `node:sqlite` (`--experimental-sqlite`) |
 | Frontend        | Vite 8 + Vanilla JS (ES Modules)                            |
 | Graph           | `3d-force-graph` + `three-spritetext` (WebGL / Three.js)    |
@@ -69,7 +69,7 @@ A web app for collaborative mental mapping. Admins create projects with structur
 
 ## Getting started
 
-**Requires Node.js 22.5+** and **pnpm 10+**
+**Requires Node.js LTS** (22.5+ minimum — `node:sqlite` is built-in from that version) **and pnpm 10+**
 
 ```bash
 # 1. Install dependencies (all workspaces)

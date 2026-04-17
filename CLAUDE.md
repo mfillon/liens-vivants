@@ -22,7 +22,7 @@ pnpm workspaces with two packages: `backend/` (Node.js + Express) and `frontend/
 - **`db.ts`** — SQLite schema (5 tables), all prepared statements and DB functions. Schema migrations use try-catch around `ALTER TABLE` so they're safe to re-run.
 - **`keywords.ts`** — `extractKeywordsFromTexts()` + EN/FR stop-word lists; used to compute keyword intersections for auto-connections
 
-Runtime: `node:sqlite` is a built-in Node.js 22.5+ module; it requires the `--experimental-sqlite` flag (set via `NODE_OPTIONS` in dev, and in the `start` script for production).
+Runtime: `node:sqlite` is a built-in Node.js module (22.5+ minimum); it requires the `--experimental-sqlite` flag (set via `NODE_OPTIONS` in dev, and in the `start` script for production).
 
 ### Frontend (`frontend/src/`)
 

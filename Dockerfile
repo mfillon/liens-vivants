@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM node:22-alpine AS builder
+FROM node:lts-alpine AS builder
 
 RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 
@@ -20,7 +20,7 @@ COPY frontend/tsconfig.json frontend/vite.config.ts ./frontend/
 RUN pnpm build
 
 # Stage 2: Runtime
-FROM node:22-alpine AS runtime
+FROM node:lts-alpine AS runtime
 
 RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 
