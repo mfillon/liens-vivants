@@ -16,17 +16,28 @@ const SESSION_KEY = 'admin_session';
 const SESSION_TTL = 60 * 60 * 1000; // 1 hour
 
 function saveSession(creds: string): void {
-  localStorage.setItem(SESSION_KEY, JSON.stringify({ credentials: creds, expiry: Date.now() + SESSION_TTL }));
+  localStorage.setItem(
+    SESSION_KEY,
+    JSON.stringify({ credentials: creds, expiry: Date.now() + SESSION_TTL }),
+  );
 }
 
 function loadSession(): string | null {
   try {
     const raw = localStorage.getItem(SESSION_KEY);
     if (!raw) return null;
-    const { credentials: creds, expiry } = JSON.parse(raw) as { credentials: string; expiry: number };
-    if (Date.now() > expiry) { localStorage.removeItem(SESSION_KEY); return null; }
+    const { credentials: creds, expiry } = JSON.parse(raw) as {
+      credentials: string;
+      expiry: number;
+    };
+    if (Date.now() > expiry) {
+      localStorage.removeItem(SESSION_KEY);
+      return null;
+    }
     return creds;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 function clearSession(): void {
@@ -93,7 +104,9 @@ void (async () => {
   const stored = loadSession();
   if (!stored) return;
   credentials = stored;
-  const res = await fetch('/api/projects', { headers: { Authorization: `Basic ${credentials}` } }).catch(() => null);
+  const res = await fetch('/api/projects', {
+    headers: { Authorization: `Basic ${credentials}` },
+  }).catch(() => null);
   if (res?.ok) {
     showDashboard((await res.json()) as Project[]);
   } else {
