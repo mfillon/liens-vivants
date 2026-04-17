@@ -64,8 +64,50 @@ type NodeDbRow = {
 // ── Database setup ─────────────────────────────────────────────────────────
 
 const DB_PATH = process.env.DB_PATH ?? path.join(__dirname, '..', 'data.db');
-fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
-const db = new DatabaseSync(DB_PATH);
+const DB_DIR = path.dirname(DB_PATH);
+
+console.log('[db] DB_PATH =', DB_PATH);
+console.log('[db] DB_DIR  =', DB_DIR);
+
+// Probe directory state before attempting to create it
+try {
+  const dirStat = fs.statSync(DB_DIR);
+  console.log(
+    '[db] DB_DIR exists — mode:',
+    dirStat.mode.toString(8),
+    '| uid:',
+    dirStat.uid,
+    '| gid:',
+    dirStat.gid,
+  );
+} catch {
+  console.log('[db] DB_DIR does not exist yet, will attempt mkdirSync');
+}
+
+let db: DatabaseSync;
+
+try {
+  fs.mkdirSync(DB_DIR, { recursive: true });
+  console.log('[db] mkdirSync succeeded');
+
+  // Verify we can actually write into the directory
+  const testFile = path.join(DB_DIR, '.write-test');
+  fs.writeFileSync(testFile, '');
+  fs.unlinkSync(testFile);
+  console.log('[db] write-permission check passed');
+
+  db = new DatabaseSync(DB_PATH);
+  console.log('[db] DatabaseSync opened successfully');
+} catch (err: unknown) {
+  const e = err as NodeJS.ErrnoException;
+  console.error('[db] FATAL: failed to open database');
+  console.error('[db]   message :', e.message);
+  console.error('[db]   code    :', e.code);
+  console.error('[db]   errno   :', e.errno);
+  console.error('[db]   path    :', e.path);
+  console.error('[db] Falling back to in-memory database — DATA WILL NOT PERSIST');
+  db = new DatabaseSync(':memory:');
+}
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS projects (
