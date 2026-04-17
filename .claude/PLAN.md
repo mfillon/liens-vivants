@@ -146,6 +146,17 @@ Target: Railway (Docker-based). Full hardening before first deploy.
 
 ---
 
+## Step 5T — E2E / Integration testing
+
+Frontend files (`admin.ts`, `graph.ts`, `submit.ts`, `i18n.ts`) are untested — they're DOM-heavy and require a browser. Backend `branches.ts` (file upload path) is also hard to cover with unit tests alone.
+
+- [ ] Choose e2e framework (Playwright recommended — headless, TypeScript-native, works with Vite dev server)
+- [ ] Cover critical user flows: create project (admin), submit participation form, view graph
+- [ ] Cover file upload flow (media attachment per branch)
+- [ ] Run e2e in CI against the built app
+
+---
+
 ## Technical Constraints & Decisions
 
 - `better-sqlite3` was rejected: fails to compile on Node 24 / Apple Clang (C++20 issue). Using built-in `node:sqlite` instead (requires `--experimental-sqlite` flag, Node 22.5+).

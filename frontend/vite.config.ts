@@ -8,6 +8,11 @@ export default defineConfig({
   resolve: {
     alias: { '@': resolve(__dirname, 'src') },
   },
+  test: {
+    coverage: {
+      include: ['src/**'],
+    },
+  },
   appType: 'mpa',
   build: {
     rollupOptions: {

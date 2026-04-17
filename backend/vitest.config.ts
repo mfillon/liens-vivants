@@ -6,6 +6,9 @@ export default defineConfig({
     alias: { '@': path.resolve(__dirname, 'src') },
   },
   test: {
+    coverage: {
+      include: ['src/**'],
+    },
     pool: 'forks',
     forks: {
       execArgv: ['--experimental-sqlite'],
