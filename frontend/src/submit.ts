@@ -41,12 +41,20 @@ function renderForm(project: Project, projectUuid: string): void {
   document.getElementById('pageTitle')!.textContent = project.center_label;
 
   // Participant name field
-  const nextN = project.next_participant_number ?? 1;
-  const defaultName = defaultParticipantName(nextN, lang);
+  let nextN = project.next_participant_number ?? 1;
   const participantInput = document.getElementById('participantName') as HTMLInputElement;
   document.getElementById('participantLabel')!.textContent = t('submit.participant_label', lang);
-  participantInput.placeholder = defaultName;
-  participantInput.value = defaultName;
+  participantInput.placeholder = defaultParticipantName(nextN, lang);
+
+  // Dismissible notification
+  const notification = document.getElementById('notification')!;
+  const notificationMsg = document.getElementById('notificationMsg')!;
+  document
+    .getElementById('notificationDismiss')!
+    .setAttribute('aria-label', t('submit.dismiss', lang));
+  document.getElementById('notificationDismiss')!.addEventListener('click', () => {
+    notification.classList.add('hidden');
+  });
 
   // Branch fields
   const fieldset = document.getElementById('branchesFieldset')!;
@@ -75,7 +83,7 @@ function renderForm(project: Project, projectUuid: string): void {
     const msg = document.getElementById('message')!;
     msg.className = 'message hidden';
 
-    const participant_name = participantInput.value.trim() || defaultParticipantName(nextN, lang);
+    const participant_name = participantInput.value.trim();
 
     const branches = project.branch_labels.map((bl) =>
       (
@@ -124,8 +132,11 @@ function renderForm(project: Project, projectUuid: string): void {
         msg.textContent = `${t('submit.error.uploads', lang)} ${uploadErrors.join('; ')}`;
         msg.className = 'message error';
       } else {
-        msg.textContent = t('submit.success', lang);
-        msg.className = 'message success';
+        notificationMsg.textContent = t('submit.success', lang);
+        notification.classList.remove('hidden');
+        msg.className = 'message hidden';
+        nextN++;
+        participantInput.placeholder = defaultParticipantName(nextN, lang);
       }
       (e.target as HTMLFormElement).reset();
     } catch {

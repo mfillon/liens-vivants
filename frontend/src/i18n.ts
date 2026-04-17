@@ -67,6 +67,7 @@ const translations = {
     'submit.button': 'Submit',
     'submit.branch_placeholder': 'Your answer…',
     'submit.success': 'Thank you! Your response has been submitted.',
+    'submit.dismiss': 'Dismiss',
     'submit.error.network': 'Network error. Please try again.',
     'submit.error.uploads': 'Submitted, but some uploads failed:',
     // Graph page
@@ -146,6 +147,7 @@ const translations = {
     'submit.button': 'Envoyer',
     'submit.branch_placeholder': 'Votre réponse…',
     'submit.success': 'Merci\u00a0! Votre réponse a été soumise.',
+    'submit.dismiss': 'Fermer',
     'submit.error.network': 'Erreur réseau. Réessayez.',
     'submit.error.uploads': "Soumis, mais certains fichiers n'ont pas pu être envoyés\u00a0:",
     // Graph page
