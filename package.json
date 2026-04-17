@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "concurrently \"pnpm --dir backend dev\" \"pnpm --dir frontend dev\"",
-    "build": "pnpm --dir frontend build",
+    "build": "pnpm --dir backend build && pnpm --dir frontend build",
     "start": "pnpm --dir backend start",
     "lint": "oxlint backend/src frontend/src",
     "format": "oxfmt backend/src frontend/src",
