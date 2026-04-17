@@ -6,6 +6,10 @@ import { app } from './app';
 import { logger } from './logger';
 
 const PORT = process.env.PORT ?? 3000;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   logger.info({ port: PORT }, 'Server started');
+});
+
+process.on('SIGTERM', () => {
+  server.close(() => process.exit(0));
 });
