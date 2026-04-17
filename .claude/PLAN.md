@@ -142,7 +142,7 @@ Target: Railway (Docker-based). Full hardening before first deploy.
 - [x] Pino structured logging (`logger.ts`, `pino-http` middleware, replaces `console.log`)
 - [x] Dockerfile + `.dockerignore`
 - [x] Remove `WWW-Authenticate` header from 401s — prevents browser native auth dialog
-- [ ] GitHub Actions CI
+- [x] GitHub Actions CI
 - [ ] Deploy on Railway (persistent volume, env vars, health check)
 
 ---
