@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
-import { app } from '@/server';
+import { app } from '@/app';
 import { _resetForTests } from '@/db';
 
 afterEach(() => {
