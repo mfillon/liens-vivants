@@ -37,6 +37,7 @@ function clearSession(): void {
 function showDashboard(projects: Project[]): void {
   document.getElementById('authForm')!.classList.add('hidden');
   document.getElementById('dashboard')!.classList.remove('hidden');
+  document.getElementById('logoutBtn')!.classList.remove('hidden');
   renderProjects(projects);
 }
 
@@ -78,6 +79,13 @@ document.getElementById('recomputeBtn')!.textContent = t('tools.recompute_btn', 
 document.getElementById('loginBtn')!.addEventListener('click', login);
 document.getElementById('adminPass')!.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') login();
+});
+document.getElementById('logoutBtn')!.textContent = t('login.logout', lang);
+document.getElementById('logoutBtn')!.addEventListener('click', () => {
+  clearSession();
+  document.getElementById('dashboard')!.classList.add('hidden');
+  document.getElementById('logoutBtn')!.classList.add('hidden');
+  document.getElementById('authForm')!.classList.remove('hidden');
 });
 
 // Auto-restore session on page load

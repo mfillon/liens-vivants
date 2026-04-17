@@ -263,6 +263,17 @@ button:hover {
   flex-shrink: 0;
 }
 
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+}
+
+.page-header h1 {
+  margin-bottom: 0;
+}
+
 .secondary-btn {
   background: #6c757d;
 }
