@@ -3,6 +3,8 @@ import path from 'path';
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 import express, { Request, Response, NextFunction } from 'express';
+import helmet from 'helmet';
+import { rateLimit } from 'express-rate-limit';
 import multer from 'multer';
 import {
   createProject,
@@ -42,8 +44,19 @@ const upload = multer({
 const app = express();
 const PORT = process.env.PORT ?? 3000;
 
+app.use(helmet({ contentSecurityPolicy: false }));
+app.use(
+  rateLimit({ windowMs: 15 * 60 * 1000, max: 200, standardHeaders: true, legacyHeaders: false }),
+);
 app.use(express.json());
 app.use('/uploads', express.static(uploadsDir));
+
+const uploadLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 50,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 function basicAuth(req: Request, res: Response, next: NextFunction): void {
   const authHeader = req.headers['authorization'];
@@ -164,6 +177,7 @@ app.post('/api/nodes', (req: Request, res: Response) => {
 // Public: upload media for a branch
 app.post(
   '/api/branches/:id/media',
+  uploadLimiter,
   upload.single('file'),
   (req: Request<{ id: string }>, res: Response) => {
     if (!req.file) {
@@ -198,6 +212,10 @@ app.get('/api/nodes', basicAuth, (_req: Request, res: Response) => {
 app.post('/api/admin/recompute-connections', basicAuth, (_req: Request, res: Response) => {
   recomputeAllConnections();
   res.json({ ok: true });
+});
+
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok', uptime: process.uptime() });
 });
 
 // In production, serve the built frontend and handle client-side routes
