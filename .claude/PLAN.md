@@ -185,11 +185,24 @@ Frontend files (`admin.ts`, `graph.ts`, `submit.ts`, `i18n.ts`) are untested —
 - [x] POST /api/branches/:id/media now deletes the old file when replacing
 - [x] Admin edit form: per-branch media preview + Remove button + file input to attach/replace
 
-## Step 9 — Project management (edit / delete)
+## Step 9 — Project management (edit / delete) ✓
 
-- [ ] `DELETE /api/projects/:uuid` (admin) — delete project + cascade (nodes, branches, connections)
-- [ ] `PATCH /api/projects/:uuid` (admin) — edit center label, branch labels, language
-- [ ] Admin UI: edit button on project card (inline form or modal), delete button with confirmation
+- [x] `DELETE /api/projects/:uuid` (admin) — delete project + cascade nodes, branches, connections, labels + media file cleanup
+- [x] `PATCH /api/projects/:uuid` (admin) — edit center label, language, branch labels (replace all)
+- [x] Admin UI: ✏️ Edit (inline form) + 🗑 Delete (with submission count in confirm dialog) on each project card
+
+---
+
+## Step 10 — Project locking
+
+Allow admins to lock a project so no new submissions are accepted.
+
+- [ ] `projects` table: add `locked INTEGER NOT NULL DEFAULT 0` column (idempotent migration)
+- [ ] `PATCH /api/projects/:uuid/lock` (admin) — toggle `locked` flag; returns `{ locked: boolean }`
+- [ ] `POST /api/nodes`: reject with 403 if project is locked
+- [ ] `GET /api/projects/:uuid`: include `locked` field in response
+- [ ] Admin UI: lock/unlock toggle button on each project card (🔒 / 🔓); updates card state instantly
+- [ ] Submit page: if project is locked, show a clear "submissions are closed" message instead of the form
 
 ---
 

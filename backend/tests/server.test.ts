@@ -141,6 +141,122 @@ describe('GET /api/projects/:uuid', () => {
   });
 });
 
+// ── PATCH /api/projects/:uuid ──────────────────────────────────────────────
+
+describe('PATCH /api/projects/:uuid', () => {
+  it('returns 401 without credentials', async () => {
+    const res = await request(app)
+      .patch('/api/projects/00000000-0000-0000-0000-000000000000')
+      .send({ center_label: 'New' });
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 404 for unknown uuid', async () => {
+    const res = await request(app)
+      .patch('/api/projects/00000000-0000-0000-0000-000000000000')
+      .set(authHeader)
+      .send({ center_label: 'New' });
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 400 when center_label is blank', async () => {
+    const { body } = await request(app)
+      .post('/api/projects')
+      .set(authHeader)
+      .send({ center_label: 'Q' });
+    const res = await request(app)
+      .patch(`/api/projects/${body.uuid}`)
+      .set(authHeader)
+      .send({ center_label: '   ' });
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 400 when nothing to update', async () => {
+    const { body } = await request(app)
+      .post('/api/projects')
+      .set(authHeader)
+      .send({ center_label: 'Q' });
+    const res = await request(app).patch(`/api/projects/${body.uuid}`).set(authHeader).send({});
+    expect(res.status).toBe(400);
+  });
+
+  it('updates center_label and returns 200', async () => {
+    const { body } = await request(app)
+      .post('/api/projects')
+      .set(authHeader)
+      .send({ center_label: 'Original' });
+    const res = await request(app)
+      .patch(`/api/projects/${body.uuid}`)
+      .set(authHeader)
+      .send({ center_label: 'Updated' });
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    const projectRes = await request(app).get(`/api/projects/${body.uuid}`);
+    expect(projectRes.body.center_label).toBe('Updated');
+  });
+
+  it('replaces branch_labels', async () => {
+    const { body } = await request(app)
+      .post('/api/projects')
+      .set(authHeader)
+      .send({ center_label: 'Q', branch_labels: ['Old A', 'Old B'] });
+    await request(app)
+      .patch(`/api/projects/${body.uuid}`)
+      .set(authHeader)
+      .send({ branch_labels: ['New A', 'New B', 'New C'] });
+    const projectRes = await request(app).get(`/api/projects/${body.uuid}`);
+    expect(projectRes.body.branch_labels).toHaveLength(3);
+    expect(projectRes.body.branch_labels[0].label).toBe('New A');
+  });
+});
+
+// ── DELETE /api/projects/:uuid ─────────────────────────────────────────────
+
+describe('DELETE /api/projects/:uuid', () => {
+  it('returns 401 without credentials', async () => {
+    const res = await request(app).delete('/api/projects/00000000-0000-0000-0000-000000000000');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 404 for unknown uuid', async () => {
+    const res = await request(app)
+      .delete('/api/projects/00000000-0000-0000-0000-000000000000')
+      .set(authHeader);
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 204 and removes the project', async () => {
+    const { body } = await request(app)
+      .post('/api/projects')
+      .set(authHeader)
+      .send({ center_label: 'To Delete' });
+    const res = await request(app).delete(`/api/projects/${body.uuid}`).set(authHeader);
+    expect(res.status).toBe(204);
+    const listRes = await request(app).get('/api/projects').set(authHeader);
+    expect(listRes.body.find((p: { uuid: string }) => p.uuid === body.uuid)).toBeUndefined();
+  });
+
+  it('removes all nodes and connections when deleting a project', async () => {
+    const { body: project } = await request(app)
+      .post('/api/projects')
+      .set(authHeader)
+      .send({ center_label: 'Q' });
+    await request(app)
+      .post('/api/nodes')
+      .send({ project_uuid: project.uuid, branches: ['ocean climate'] });
+    await request(app)
+      .post('/api/nodes')
+      .send({ project_uuid: project.uuid, branches: ['ocean forest'] });
+
+    await request(app).delete(`/api/projects/${project.uuid}`).set(authHeader);
+
+    const nodesRes = await request(app).get('/api/nodes').set(authHeader);
+    expect(
+      nodesRes.body.filter((n: { project_id: number }) => n.project_id === project.id),
+    ).toHaveLength(0);
+  });
+});
+
 // ── POST /api/nodes ────────────────────────────────────────────────────────
 
 describe('POST /api/nodes', () => {
