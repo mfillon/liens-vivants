@@ -175,7 +175,14 @@ Frontend files (`admin.ts`, `graph.ts`, `submit.ts`, `i18n.ts`) are untested —
 
 ---
 
-## Step 8 — Project management (edit / delete)
+## Step 8 — Submission management (delete / edit)
+
+- [x] `DELETE /api/nodes/:id` (admin) — delete node + cascade connections + media file cleanup
+- [x] Admin UI: delete button on each submission card, confirm dialog, live count update
+- [ ] `PATCH /api/nodes/:id` (admin) — edit participant name and/or branch answers
+- [ ] Admin UI: edit button on submission card (inline form)
+
+## Step 9 — Project management (edit / delete)
 
 - [ ] `DELETE /api/projects/:uuid` (admin) — delete project + cascade (nodes, branches, connections)
 - [ ] `PATCH /api/projects/:uuid` (admin) — edit center label, branch labels, language

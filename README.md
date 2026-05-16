@@ -24,7 +24,7 @@ A web app for collaborative mental mapping. Admins create projects with structur
 - **3D graph**: WebGL force-directed visualization (`3d-force-graph`); auto-orbiting camera that pauses on any click; click nodes or connections to inspect responses in the sidebar
 - **Hub node**: central orange node anchors all responses; keyword connections highlighted in blue
 - **Media attachments**: optional image, audio, or video upload per branch; displayed inline in sidebar and admin view; images open in full-screen lightbox on click
-- **Admin dashboard**: create projects, copy links, view submissions with media, trigger connection recompute
+- **Admin dashboard**: create projects, copy links, view/delete submissions with media, trigger connection recompute
 
 ---
 
@@ -62,6 +62,7 @@ A web app for collaborative mental mapping. Admins create projects with structur
 | GET    | `/api/projects/:uuid/connections`  | —     | Get keyword connections                                                                          |
 | POST   | `/api/nodes`                       | —     | Submit a node (`project_uuid` required, `participant_name` optional — auto-generated if missing) |
 | GET    | `/api/nodes`                       | Basic | List all nodes with branches                                                                     |
+| DELETE | `/api/nodes/:id`                   | Basic | Delete a node (cascades branches, connections, and uploaded media files)                         |
 | POST   | `/api/branches/:id/media`          | —     | Upload media for a branch (image/audio/video, max 50 MB)                                         |
 | POST   | `/api/admin/recompute-connections` | Basic | Recompute all connections                                                                        |
 

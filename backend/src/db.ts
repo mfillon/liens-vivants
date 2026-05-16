@@ -216,6 +216,8 @@ const deleteConnectionsForNode = db.prepare(
 const selectConnectionsByProject = db.prepare(
   'SELECT * FROM connections WHERE project_id = ? ORDER BY created_at DESC',
 );
+const selectNodeById = db.prepare('SELECT * FROM nodes WHERE id = ?');
+const deleteNodeById = db.prepare('DELETE FROM nodes WHERE id = ?');
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -313,6 +315,16 @@ export function getAllNodes(): Node[] {
     ...mapNodeRow(row),
     branches: selectBranches.all(row.id) as unknown as Branch[],
   }));
+}
+
+export function deleteNode(nodeId: number): { mediaPaths: string[] } | null {
+  const row = selectNodeById.get(nodeId) as NodeDbRow | undefined;
+  if (!row) return null;
+  const branches = selectBranches.all(nodeId) as unknown as Branch[];
+  const mediaPaths = branches.filter((b) => b.media_path).map((b) => b.media_path as string);
+  deleteConnectionsForNode.run(nodeId, nodeId);
+  deleteNodeById.run(nodeId);
+  return { mediaPaths };
 }
 
 export function getNodesByProject(projectId: number): Node[] {

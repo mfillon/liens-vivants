@@ -312,14 +312,61 @@ async function toggleSubmissions(btn: HTMLButtonElement): Promise<void> {
           <div class="card-header">
             <strong>${escapeHtml(node.participant_name)}</strong>
             <span class="timestamp">${date}</span>
+            <button class="delete-btn" data-node-id="${node.id}">${t('submissions.delete', lang)}</button>
           </div>
           ${branchesHtml}
         </div>
       `;
       })
       .join('');
+
+    submissionsEl.querySelectorAll<HTMLButtonElement>('.delete-btn').forEach((deleteBtn) => {
+      deleteBtn.addEventListener('click', () => {
+        const nodeId = parseInt(deleteBtn.dataset.nodeId ?? '', 10);
+        const card = deleteBtn.closest<HTMLElement>('.submission-card')!;
+        void deleteSubmission(nodeId, card, submissionsEl);
+      });
+    });
   } catch {
     submissionsEl.textContent = t('submissions.failed', lang);
+  }
+}
+
+// ── Delete submission ───────────────────────────────────────────────────────
+
+async function deleteSubmission(
+  nodeId: number,
+  card: HTMLElement,
+  container: HTMLElement,
+): Promise<void> {
+  if (!confirm(t('submissions.delete_confirm', lang))) return;
+  try {
+    const res = await fetch(`/api/nodes/${nodeId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Basic ${credentials}` },
+    });
+    if (!res.ok) {
+      alert(t('submissions.delete_error', lang));
+      return;
+    }
+    card.remove();
+    if (!container.querySelector('.submission-card')) {
+      container.innerHTML = `<p class="empty">${t('submissions.empty', lang)}</p>`;
+    }
+    const countEl = container.closest('.card')?.querySelector<HTMLElement>('.count');
+    if (countEl) {
+      const match = /^(\d+)/.exec(countEl.textContent ?? '');
+      if (match) {
+        const newCount = Math.max(0, parseInt(match[1], 10) - 1);
+        const word =
+          newCount === 1
+            ? t('projects.submissions_singular', lang)
+            : t('projects.submissions_plural', lang);
+        countEl.textContent = `${newCount} ${word}`;
+      }
+    }
+  } catch {
+    alert(t('submissions.delete_error', lang));
   }
 }
 
