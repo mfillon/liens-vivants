@@ -218,6 +218,13 @@ const selectConnectionsByProject = db.prepare(
 );
 const selectNodeById = db.prepare('SELECT * FROM nodes WHERE id = ?');
 const deleteNodeById = db.prepare('DELETE FROM nodes WHERE id = ?');
+const updateNodeName = db.prepare('UPDATE nodes SET center_text = ? WHERE id = ?');
+const updateBranchText = db.prepare(
+  'UPDATE branches SET text = ? WHERE node_id = ? AND position = ?',
+);
+const clearBranchMediaStmt = db.prepare(
+  'UPDATE branches SET media_path = NULL, media_type = NULL WHERE id = ?',
+);
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -294,6 +301,10 @@ export function createNode(
   return { nodeId: Number(nodeId), branchIds };
 }
 
+export function clearBranchMedia(branchId: number): void {
+  clearBranchMediaStmt.run(branchId);
+}
+
 export function saveBranchMedia(
   branchId: number,
   mediaPath: string,
@@ -315,6 +326,27 @@ export function getAllNodes(): Node[] {
     ...mapNodeRow(row),
     branches: selectBranches.all(row.id) as unknown as Branch[],
   }));
+}
+
+export function updateNode(
+  nodeId: number,
+  participant_name?: string,
+  branches?: { position: number; text: string }[],
+): boolean {
+  const row = selectNodeById.get(nodeId) as NodeDbRow | undefined;
+  if (!row) return false;
+  if (participant_name !== undefined) {
+    updateNodeName.run(participant_name, nodeId);
+  }
+  if (branches && branches.length > 0) {
+    for (const { position, text } of branches) {
+      updateBranchText.run(text, nodeId, position);
+    }
+    if (row.project_id !== null) {
+      computeConnections(row.project_id, nodeId);
+    }
+  }
+  return true;
 }
 
 export function deleteNode(nodeId: number): { mediaPaths: string[] } | null {

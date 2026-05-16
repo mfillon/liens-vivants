@@ -179,8 +179,11 @@ Frontend files (`admin.ts`, `graph.ts`, `submit.ts`, `i18n.ts`) are untested —
 
 - [x] `DELETE /api/nodes/:id` (admin) — delete node + cascade connections + media file cleanup
 - [x] Admin UI: delete button on each submission card, confirm dialog, live count update
-- [ ] `PATCH /api/nodes/:id` (admin) — edit participant name and/or branch answers
-- [ ] Admin UI: edit button on submission card (inline form)
+- [x] `PATCH /api/nodes/:id` (admin) — edit participant name and/or branch answers; recomputes connections when branch text changes
+- [x] Admin UI: inline edit form on submission card (✏️ Edit button, Save/Cancel, live update)
+- [x] `DELETE /api/branches/:id/media` (admin) — remove a branch's media file + clear DB columns
+- [x] POST /api/branches/:id/media now deletes the old file when replacing
+- [x] Admin edit form: per-branch media preview + Remove button + file input to attach/replace
 
 ## Step 9 — Project management (edit / delete)
 

@@ -373,14 +373,90 @@ button:hover {
   font-size: 0.9rem;
 }
 
+.card-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 .delete-btn {
   padding: 3px 10px;
   font-size: 0.8rem;
   background: #e74c3c;
-  flex-shrink: 0;
-  margin-left: auto;
 }
 
 .delete-btn:hover {
   background: #c0392b;
+}
+
+.edit-btn {
+  padding: 3px 10px;
+  font-size: 0.8rem;
+  background: #6c757d;
+}
+
+.edit-btn:hover {
+  background: #545b62;
+}
+
+/* Inline edit form */
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.edit-field label {
+  font-size: 0.8rem;
+}
+
+.edit-branch-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  background: #f0f4ff;
+  border-radius: 6px;
+}
+
+.edit-media-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.edit-media-preview .branch-media {
+  max-height: 80px;
+  width: auto;
+}
+
+.remove-media-btn {
+  padding: 3px 10px;
+  font-size: 0.8rem;
+}
+
+.edit-attach-label {
+  font-size: 0.8rem;
+  color: #555;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.edit-actions button {
+  padding: 6px 16px;
+  font-size: 0.85rem;
 }

@@ -52,6 +52,13 @@ const translations = {
     'submissions.delete': '🗑 Delete',
     'submissions.delete_confirm': 'Delete this submission? This cannot be undone.',
     'submissions.delete_error': 'Failed to delete submission.',
+    'submissions.edit': '✏️ Edit',
+    'submissions.edit_name_label': 'Participant name',
+    'submissions.edit_save': 'Save',
+    'submissions.edit_cancel': 'Cancel',
+    'submissions.edit_error': 'Failed to save changes.',
+    'submissions.edit_remove_file': '✕ Remove file',
+    'submissions.edit_attach_file': 'Attach file',
     // Tools
     'tools.heading': 'Tools',
     'tools.recompute_info':
@@ -136,6 +143,13 @@ const translations = {
     'submissions.delete_confirm':
       'Supprimer cette soumission\u00a0? Cette action est irréversible.',
     'submissions.delete_error': 'Impossible de supprimer la soumission.',
+    'submissions.edit': '✏️ Modifier',
+    'submissions.edit_name_label': 'Nom du\u00b7de la participant\u00b7e',
+    'submissions.edit_save': 'Enregistrer',
+    'submissions.edit_cancel': 'Annuler',
+    'submissions.edit_error': 'Impossible d\u2019enregistrer les modifications.',
+    'submissions.edit_remove_file': '✕ Supprimer le fichier',
+    'submissions.edit_attach_file': 'Joindre un fichier',
     // Tools
     'tools.heading': 'Outils',
     'tools.recompute_info':

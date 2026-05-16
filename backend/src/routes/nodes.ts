@@ -7,6 +7,7 @@ import {
   getAllNodes,
   getNodeCountByProject,
   getProjectByUUID,
+  updateNode,
 } from '../db';
 import { defaultParticipantName } from '../domain';
 import { basicAuth } from '../middleware/auth';
@@ -47,6 +48,33 @@ nodesRouter.post('/', (req: Request, res: Response) => {
 
 nodesRouter.get('/', basicAuth, (_req: Request, res: Response) => {
   res.json(getAllNodes());
+});
+
+nodesRouter.patch('/:id', basicAuth, (req: Request<{ id: string }>, res: Response) => {
+  const nodeId = parseInt(req.params.id, 10);
+  if (isNaN(nodeId)) {
+    res.status(400).json({ error: 'Invalid node id' });
+    return;
+  }
+  const { participant_name, branches } = req.body as {
+    participant_name?: string;
+    branches?: { position: number; text: string }[];
+  };
+  const trimmedName = participant_name?.trim();
+  if (trimmedName !== undefined && !trimmedName) {
+    res.status(400).json({ error: 'participant_name cannot be empty' });
+    return;
+  }
+  if (trimmedName === undefined && (!branches || branches.length === 0)) {
+    res.status(400).json({ error: 'Nothing to update' });
+    return;
+  }
+  const ok = updateNode(nodeId, trimmedName, branches);
+  if (!ok) {
+    res.status(404).json({ error: 'Submission not found' });
+    return;
+  }
+  res.status(200).json({ ok: true });
 });
 
 nodesRouter.delete('/:id', basicAuth, (req: Request<{ id: string }>, res: Response) => {
