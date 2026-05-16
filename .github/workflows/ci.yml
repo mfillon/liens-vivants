@@ -7,25 +7,59 @@ on:
     branches: [main]
 
 jobs:
-  ci:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-
       - uses: pnpm/action-setup@v6
-
       - uses: actions/setup-node@v6
         with:
           node-version: 'lts/*'
           cache: 'pnpm'
-
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
-      - run: pnpm format:check
-      - run: pnpm typecheck
-      - run: pnpm test
-      - run: pnpm build
 
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 'lts/*'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 'lts/*'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 'lts/*'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+
+  docker:
+    needs: [lint, format, typecheck, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
       - uses: docker/build-push-action@v6
         with:
           context: .
