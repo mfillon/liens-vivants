@@ -293,43 +293,184 @@ async function toggleSubmissions(btn: HTMLButtonElement): Promise<void> {
       return;
     }
 
-    submissionsEl.innerHTML = filtered
-      .map((node) => {
-        const date = new Date(node.created_at + 'Z').toLocaleString();
-        const branchesHtml =
-          node.branches.length > 0
-            ? '<ul>' +
-              node.branches
-                .map(
-                  (b) =>
-                    `<li><span class="position">${b.position}.</span> ${escapeHtml(b.text)}${mediaHtml(b)}</li>`,
-                )
-                .join('') +
-              '</ul>'
-            : '';
-        return `
-        <div class="submission-card">
-          <div class="card-header">
-            <strong>${escapeHtml(node.participant_name)}</strong>
-            <span class="timestamp">${date}</span>
-            <button class="delete-btn" data-node-id="${node.id}">${t('submissions.delete', lang)}</button>
-          </div>
-          ${branchesHtml}
-        </div>
-      `;
-      })
-      .join('');
+    submissionsEl.innerHTML = filtered.map(submissionCardHtml).join('');
 
-    submissionsEl.querySelectorAll<HTMLButtonElement>('.delete-btn').forEach((deleteBtn) => {
-      deleteBtn.addEventListener('click', () => {
-        const nodeId = parseInt(deleteBtn.dataset.nodeId ?? '', 10);
-        const card = deleteBtn.closest<HTMLElement>('.submission-card')!;
-        void deleteSubmission(nodeId, card, submissionsEl);
-      });
+    submissionsEl.querySelectorAll<HTMLElement>('.submission-card').forEach((card, i) => {
+      attachCardHandlers(card, filtered[i]!, submissionsEl);
     });
   } catch {
     submissionsEl.textContent = t('submissions.failed', lang);
   }
+}
+
+// ── Submission card helpers ─────────────────────────────────────────────────
+
+function submissionCardInnerHtml(node: Node): string {
+  const date = new Date(node.created_at + 'Z').toLocaleString();
+  const branchesHtml =
+    node.branches.length > 0
+      ? '<ul>' +
+        node.branches
+          .map(
+            (b) =>
+              `<li><span class="position">${b.position}.</span> ${escapeHtml(b.text)}${mediaHtml(b)}</li>`,
+          )
+          .join('') +
+        '</ul>'
+      : '';
+  return `
+    <div class="card-header">
+      <strong>${escapeHtml(node.participant_name)}</strong>
+      <span class="timestamp">${date}</span>
+      <div class="card-actions">
+        <button class="edit-btn" data-node-id="${node.id}">${t('submissions.edit', lang)}</button>
+        <button class="delete-btn" data-node-id="${node.id}">${t('submissions.delete', lang)}</button>
+      </div>
+    </div>
+    ${branchesHtml}
+  `;
+}
+
+function submissionCardHtml(node: Node): string {
+  return `<div class="submission-card">${submissionCardInnerHtml(node)}</div>`;
+}
+
+function attachCardHandlers(card: HTMLElement, node: Node, container: HTMLElement): void {
+  card.querySelector<HTMLButtonElement>('.edit-btn')?.addEventListener('click', () => {
+    showEditForm(node, card, container);
+  });
+  card.querySelector<HTMLButtonElement>('.delete-btn')?.addEventListener('click', () => {
+    void deleteSubmission(node.id, card, container);
+  });
+}
+
+// ── Edit submission ─────────────────────────────────────────────────────────
+
+function showEditForm(node: Node, card: HTMLElement, container: HTMLElement): void {
+  const pendingRemovals = new Set<number>();
+
+  const branchSections = node.branches
+    .map(
+      (b) => `
+    <div class="edit-branch-section">
+      <div class="edit-field">
+        <label>${t('create.branch', lang)} ${b.position}</label>
+        <input type="text" class="edit-branch" data-position="${b.position}" value="${escapeHtml(b.text)}" />
+      </div>
+      ${
+        b.media_path
+          ? `<div class="edit-media-preview" data-branch-id="${b.id}">
+          ${mediaHtml(b)}
+          <button type="button" class="remove-media-btn secondary-btn" data-branch-id="${b.id}">${t('submissions.edit_remove_file', lang)}</button>
+        </div>`
+          : ''
+      }
+      <div class="edit-field">
+        <span class="edit-attach-label">${t('submissions.edit_attach_file', lang)}</span>
+        <input type="file" class="new-media-input file-input" data-branch-id="${b.id}" accept="image/*,audio/*,video/*" />
+      </div>
+    </div>`,
+    )
+    .join('');
+
+  card.innerHTML = `
+    <form class="edit-form">
+      <div class="edit-field">
+        <label>${t('submissions.edit_name_label', lang)}</label>
+        <input type="text" class="edit-name" value="${escapeHtml(node.participant_name)}" />
+      </div>
+      ${branchSections}
+      <div class="edit-actions">
+        <button type="submit">${t('submissions.edit_save', lang)}</button>
+        <button type="button" class="secondary-btn edit-cancel-btn">${t('submissions.edit_cancel', lang)}</button>
+      </div>
+    </form>
+  `;
+
+  card.querySelectorAll<HTMLButtonElement>('.remove-media-btn').forEach((removeBtn) => {
+    removeBtn.addEventListener('click', () => {
+      const branchId = parseInt(removeBtn.dataset.branchId ?? '', 10);
+      pendingRemovals.add(branchId);
+      removeBtn.closest<HTMLElement>('.edit-media-preview')!.style.display = 'none';
+    });
+  });
+
+  card.querySelector('.edit-cancel-btn')?.addEventListener('click', () => {
+    card.innerHTML = submissionCardInnerHtml(node);
+    attachCardHandlers(card, node, container);
+  });
+
+  card.querySelector<HTMLFormElement>('.edit-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const nameVal = card.querySelector<HTMLInputElement>('.edit-name')!.value.trim();
+    const branches = Array.from(card.querySelectorAll<HTMLInputElement>('.edit-branch'))
+      .map((input) => ({
+        position: parseInt(input.dataset.position ?? '0', 10),
+        text: input.value.trim(),
+      }))
+      .filter((b) => b.text);
+
+    try {
+      const patchRes = await fetch(`/api/nodes/${node.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Basic ${credentials}` },
+        body: JSON.stringify({ participant_name: nameVal, branches }),
+      });
+      if (!patchRes.ok) {
+        alert(t('submissions.edit_error', lang));
+        return;
+      }
+
+      // Remove media for marked branches (skip if superseded by a new file)
+      for (const branchId of pendingRemovals) {
+        const fileInput = card.querySelector<HTMLInputElement>(
+          `.new-media-input[data-branch-id="${branchId}"]`,
+        );
+        if (!fileInput?.files?.length) {
+          await fetch(`/api/branches/${branchId}/media`, {
+            method: 'DELETE',
+            headers: { Authorization: `Basic ${credentials}` },
+          });
+          const branch = node.branches.find((b) => b.id === branchId);
+          if (branch) {
+            branch.media_path = null;
+            branch.media_type = null;
+          }
+        }
+      }
+
+      // Upload new media files
+      for (const input of Array.from(card.querySelectorAll<HTMLInputElement>('.new-media-input'))) {
+        if (!input.files?.length) continue;
+        const branchId = parseInt(input.dataset.branchId ?? '', 10);
+        const formData = new FormData();
+        formData.append('file', input.files[0]!);
+        const uploadRes = await fetch(`/api/branches/${branchId}/media`, {
+          method: 'POST',
+          headers: { Authorization: `Basic ${credentials}` },
+          body: formData,
+        });
+        if (uploadRes.ok) {
+          const { path: filePath } = (await uploadRes.json()) as { path: string };
+          const branch = node.branches.find((b) => b.id === branchId);
+          if (branch) {
+            branch.media_path = filePath.replace('/uploads/', '');
+            branch.media_type = input.files[0]!.type;
+          }
+        }
+      }
+
+      node.participant_name = nameVal;
+      for (const b of branches) {
+        const branch = node.branches.find((br) => br.position === b.position);
+        if (branch) branch.text = b.text;
+      }
+      card.innerHTML = submissionCardInnerHtml(node);
+      attachCardHandlers(card, node, container);
+    } catch {
+      alert(t('submissions.edit_error', lang));
+    }
+  });
 }
 
 // ── Delete submission ───────────────────────────────────────────────────────

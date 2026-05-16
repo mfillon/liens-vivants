@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { app } from '@/app';
-import { _resetForTests } from '@/db';
+import { _resetForTests, createNode, createProject, saveBranchMedia } from '@/db';
 
 afterEach(() => {
   _resetForTests();
@@ -314,6 +314,81 @@ describe('GET /api/nodes', () => {
   });
 });
 
+// ── PATCH /api/nodes/:id ──────────────────────────────────────────────────
+
+describe('PATCH /api/nodes/:id', () => {
+  it('returns 401 without credentials', async () => {
+    const res = await request(app).patch('/api/nodes/1').send({ participant_name: 'Bob' });
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 400 when body has nothing to update', async () => {
+    const res = await request(app).patch('/api/nodes/1').set(authHeader).send({});
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 400 when participant_name is blank', async () => {
+    const res = await request(app)
+      .patch('/api/nodes/1')
+      .set(authHeader)
+      .send({ participant_name: '   ' });
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 404 for unknown id', async () => {
+    const res = await request(app)
+      .patch('/api/nodes/999999')
+      .set(authHeader)
+      .send({ participant_name: 'Bob' });
+    expect(res.status).toBe(404);
+  });
+
+  it('updates participant name and returns 200', async () => {
+    const { body: project } = await request(app)
+      .post('/api/projects')
+      .set(authHeader)
+      .send({ center_label: 'Q' });
+    const { body: node } = await request(app)
+      .post('/api/nodes')
+      .send({ project_uuid: project.uuid, participant_name: 'Alice', branches: [] });
+
+    const res = await request(app)
+      .patch(`/api/nodes/${node.id}`)
+      .set(authHeader)
+      .send({ participant_name: 'Bob' });
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+
+    const listRes = await request(app).get('/api/nodes').set(authHeader);
+    const updated = listRes.body.find((n: { id: number }) => n.id === node.id);
+    expect(updated.participant_name).toBe('Bob');
+  });
+
+  it('updates branch text and recomputes connections', async () => {
+    const { body: project } = await request(app)
+      .post('/api/projects')
+      .set(authHeader)
+      .send({ center_label: 'Q' });
+    const { body: node1 } = await request(app)
+      .post('/api/nodes')
+      .send({ project_uuid: project.uuid, branches: ['ocean climate'] });
+    await request(app)
+      .post('/api/nodes')
+      .send({ project_uuid: project.uuid, branches: ['ocean forest'] });
+
+    const before = await request(app).get(`/api/projects/${project.uuid}/connections`);
+    expect(before.body).toHaveLength(1);
+
+    await request(app)
+      .patch(`/api/nodes/${node1.id}`)
+      .set(authHeader)
+      .send({ branches: [{ position: 1, text: 'totally different' }] });
+
+    const after = await request(app).get(`/api/projects/${project.uuid}/connections`);
+    expect(after.body).toHaveLength(0);
+  });
+});
+
 // ── DELETE /api/nodes/:id ──────────────────────────────────────────────────
 
 describe('DELETE /api/nodes/:id', () => {
@@ -373,6 +448,36 @@ describe('POST /api/branches/:id/media', () => {
   it('returns 400 when no file is attached', async () => {
     const res = await request(app).post('/api/branches/1/media');
     expect(res.status).toBe(400);
+  });
+});
+
+// ── DELETE /api/branches/:id/media ─────────────────────────────────────────
+
+describe('DELETE /api/branches/:id/media', () => {
+  it('returns 401 without credentials', async () => {
+    const res = await request(app).delete('/api/branches/1/media');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 404 for unknown branch id', async () => {
+    const res = await request(app).delete('/api/branches/999999/media').set(authHeader);
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 204 and clears media', async () => {
+    const { id: projectId } = createProject('Q', []);
+    const { branchIds } = createNode(projectId, 'Alice', ['text']);
+    const branchId = branchIds[0].id;
+    saveBranchMedia(branchId, 'test-file.jpg', 'image/jpeg');
+
+    const res = await request(app).delete(`/api/branches/${branchId}/media`).set(authHeader);
+    expect(res.status).toBe(204);
+
+    // Verify cleared via the nodes list
+    const nodesRes = await request(app).get('/api/nodes').set(authHeader);
+    const node = nodesRes.body.find((n: { id: number }) => n.id !== undefined);
+    const branch = node?.branches.find((b: { id: number }) => b.id === branchId);
+    expect(branch?.media_path).toBeNull();
   });
 });
 

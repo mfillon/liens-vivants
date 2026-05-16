@@ -1,9 +1,11 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { rateLimit } from 'express-rate-limit';
 import multer from 'multer';
+import fs from 'fs';
 import path from 'path';
-import { getBranchById, saveBranchMedia } from '../db';
+import { clearBranchMedia, getBranchById, saveBranchMedia } from '../db';
 import { UPLOADS_DIR } from '../config';
+import { basicAuth } from '../middleware/auth';
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -44,14 +46,36 @@ branchesRouter.post(
       return;
     }
     const branchId = parseInt(req.params.id, 10);
-    if (!getBranchById(branchId)) {
+    const branch = getBranchById(branchId);
+    if (!branch) {
       res.status(404).json({ error: 'Branch not found' });
       return;
+    }
+    if (branch.media_path) {
+      fs.unlink(path.join(UPLOADS_DIR, branch.media_path), () => {});
     }
     saveBranchMedia(branchId, req.file.filename, req.file.mimetype);
     res.status(201).json({ path: `/uploads/${req.file.filename}` });
   },
 );
+
+branchesRouter.delete('/:id/media', basicAuth, (req: Request<{ id: string }>, res: Response) => {
+  const branchId = parseInt(req.params.id, 10);
+  if (isNaN(branchId)) {
+    res.status(400).json({ error: 'Invalid branch id' });
+    return;
+  }
+  const branch = getBranchById(branchId);
+  if (!branch) {
+    res.status(404).json({ error: 'Branch not found' });
+    return;
+  }
+  if (branch.media_path) {
+    fs.unlink(path.join(UPLOADS_DIR, branch.media_path), () => {});
+  }
+  clearBranchMedia(branchId);
+  res.status(204).end();
+});
 
 branchesRouter.use(
   (err: Error & { status?: number }, _req: Request, res: Response, _next: NextFunction) => {

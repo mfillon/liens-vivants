@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   _resetForTests,
+  clearBranchMedia,
   createNode,
   createProject,
   deleteNode,
@@ -12,6 +13,7 @@ import {
   getProjectByUUID,
   recomputeAllConnections,
   saveBranchMedia,
+  updateNode,
 } from '@/db';
 
 afterEach(() => {
@@ -151,6 +153,57 @@ describe('getBranchById / saveBranchMedia', () => {
 
   it('saveBranchMedia returns null for unknown branch', () => {
     expect(saveBranchMedia(999999, 'file.jpg', 'image/jpeg')).toBeNull();
+  });
+
+  it('clearBranchMedia sets media_path and media_type to null', () => {
+    const { id: projectId } = createProject('Q', []);
+    const { branchIds } = createNode(projectId, 'Alice', ['text']);
+    saveBranchMedia(branchIds[0].id, 'file.jpg', 'image/jpeg');
+    clearBranchMedia(branchIds[0].id);
+    const branch = getBranchById(branchIds[0].id);
+    expect(branch!.media_path).toBeNull();
+    expect(branch!.media_type).toBeNull();
+  });
+});
+
+// ── updateNode ─────────────────────────────────────────────────────────────
+
+describe('updateNode', () => {
+  it('returns false for unknown id', () => {
+    expect(updateNode(999999, 'Alice')).toBe(false);
+  });
+
+  it('updates participant name', () => {
+    const { id: projectId } = createProject('Q', []);
+    const { nodeId } = createNode(projectId, 'Alice', []);
+    updateNode(nodeId, 'Bob');
+    const nodes = getAllNodes();
+    expect(nodes.find((n) => n.id === nodeId)!.participant_name).toBe('Bob');
+  });
+
+  it('updates branch text', () => {
+    const { id: projectId } = createProject('Q', []);
+    const { nodeId, branchIds } = createNode(projectId, 'Alice', ['original text']);
+    updateNode(nodeId, undefined, [{ position: branchIds[0].position, text: 'updated text' }]);
+    expect(getBranchById(branchIds[0].id)!.text).toBe('updated text');
+  });
+
+  it('recomputes connections when branch text changes', () => {
+    const { id: projectId } = createProject('Q', []);
+    const { nodeId } = createNode(projectId, 'Alice', ['ocean climate']);
+    createNode(projectId, 'Bob', ['ocean forest']);
+    expect(getConnectionsByProject(projectId)).toHaveLength(1);
+
+    // Remove the shared keyword — connection should disappear
+    updateNode(nodeId, undefined, [{ position: 1, text: 'totally different' }]);
+    expect(getConnectionsByProject(projectId)).toHaveLength(0);
+  });
+
+  it('does not touch name if participant_name is undefined', () => {
+    const { id: projectId } = createProject('Q', []);
+    const { nodeId } = createNode(projectId, 'Alice', ['text']);
+    updateNode(nodeId, undefined, [{ position: 1, text: 'new text' }]);
+    expect(getAllNodes().find((n) => n.id === nodeId)!.participant_name).toBe('Alice');
   });
 });
 
