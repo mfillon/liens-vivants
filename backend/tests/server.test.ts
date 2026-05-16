@@ -314,6 +314,59 @@ describe('GET /api/nodes', () => {
   });
 });
 
+// ── DELETE /api/nodes/:id ──────────────────────────────────────────────────
+
+describe('DELETE /api/nodes/:id', () => {
+  it('returns 401 without credentials', async () => {
+    const res = await request(app).delete('/api/nodes/1');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 404 for unknown id', async () => {
+    const res = await request(app).delete('/api/nodes/999999').set(authHeader);
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 204 and removes the node', async () => {
+    const { body: project } = await request(app)
+      .post('/api/projects')
+      .set(authHeader)
+      .send({ center_label: 'Q' });
+
+    const { body: node } = await request(app)
+      .post('/api/nodes')
+      .send({ project_uuid: project.uuid, branches: ['some text'] });
+
+    const delRes = await request(app).delete(`/api/nodes/${node.id}`).set(authHeader);
+    expect(delRes.status).toBe(204);
+
+    const listRes = await request(app).get('/api/nodes').set(authHeader);
+    expect(listRes.body.find((n: { id: number }) => n.id === node.id)).toBeUndefined();
+  });
+
+  it('removes connections involving the deleted node', async () => {
+    const { body: project } = await request(app)
+      .post('/api/projects')
+      .set(authHeader)
+      .send({ center_label: 'Q' });
+
+    await request(app)
+      .post('/api/nodes')
+      .send({ project_uuid: project.uuid, branches: ['ocean climate'] });
+    const { body: node2 } = await request(app)
+      .post('/api/nodes')
+      .send({ project_uuid: project.uuid, branches: ['ocean forest climate'] });
+
+    const before = await request(app).get(`/api/projects/${project.uuid}/connections`);
+    expect(before.body).toHaveLength(1);
+
+    await request(app).delete(`/api/nodes/${node2.id}`).set(authHeader);
+
+    const after = await request(app).get(`/api/projects/${project.uuid}/connections`);
+    expect(after.body).toHaveLength(0);
+  });
+});
+
 // ── POST /api/branches/:id/media ───────────────────────────────────────────
 
 describe('POST /api/branches/:id/media', () => {

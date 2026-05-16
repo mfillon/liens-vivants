@@ -49,6 +49,9 @@ const translations = {
     'submissions.empty': 'No submissions yet.',
     'submissions.loading': 'Loading…',
     'submissions.failed': 'Failed to load submissions.',
+    'submissions.delete': '🗑 Delete',
+    'submissions.delete_confirm': 'Delete this submission? This cannot be undone.',
+    'submissions.delete_error': 'Failed to delete submission.',
     // Tools
     'tools.heading': 'Tools',
     'tools.recompute_info':
@@ -129,6 +132,10 @@ const translations = {
     'submissions.empty': 'Aucune soumission pour l\u2019instant.',
     'submissions.loading': 'Chargement…',
     'submissions.failed': 'Impossible de charger les soumissions.',
+    'submissions.delete': '🗑 Supprimer',
+    'submissions.delete_confirm':
+      'Supprimer cette soumission\u00a0? Cette action est irréversible.',
+    'submissions.delete_error': 'Impossible de supprimer la soumission.',
     // Tools
     'tools.heading': 'Outils',
     'tools.recompute_info':

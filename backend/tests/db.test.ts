@@ -3,6 +3,7 @@ import {
   _resetForTests,
   createNode,
   createProject,
+  deleteNode,
   getAllNodes,
   getAllProjects,
   getBranchById,
@@ -150,6 +151,52 @@ describe('getBranchById / saveBranchMedia', () => {
 
   it('saveBranchMedia returns null for unknown branch', () => {
     expect(saveBranchMedia(999999, 'file.jpg', 'image/jpeg')).toBeNull();
+  });
+});
+
+// ── deleteNode ─────────────────────────────────────────────────────────────
+
+describe('deleteNode', () => {
+  it('returns null for unknown id', () => {
+    expect(deleteNode(999999)).toBeNull();
+  });
+
+  it('removes the node from getAllNodes', () => {
+    const { id: projectId } = createProject('Q', []);
+    const { nodeId } = createNode(projectId, 'Alice', ['branch text']);
+    deleteNode(nodeId);
+    expect(getAllNodes().find((n) => n.id === nodeId)).toBeUndefined();
+  });
+
+  it('removes associated branches', () => {
+    const { id: projectId } = createProject('Q', []);
+    const { nodeId, branchIds } = createNode(projectId, 'Alice', ['branch text']);
+    deleteNode(nodeId);
+    expect(getBranchById(branchIds[0].id)).toBeUndefined();
+  });
+
+  it('returns media paths of deleted branches', () => {
+    const { id: projectId } = createProject('Q', []);
+    const { nodeId, branchIds } = createNode(projectId, 'Alice', ['branch text']);
+    saveBranchMedia(branchIds[0].id, 'file.jpg', 'image/jpeg');
+    const result = deleteNode(nodeId);
+    expect(result?.mediaPaths).toEqual(['file.jpg']);
+  });
+
+  it('returns empty mediaPaths when no media attached', () => {
+    const { id: projectId } = createProject('Q', []);
+    const { nodeId } = createNode(projectId, 'Alice', ['branch text']);
+    const result = deleteNode(nodeId);
+    expect(result?.mediaPaths).toEqual([]);
+  });
+
+  it('removes connections involving the deleted node', () => {
+    const { id: projectId } = createProject('Q', []);
+    createNode(projectId, 'Alice', ['ocean climate']);
+    const { nodeId } = createNode(projectId, 'Bob', ['ocean forest climate']);
+    expect(getConnectionsByProject(projectId)).toHaveLength(1);
+    deleteNode(nodeId);
+    expect(getConnectionsByProject(projectId)).toHaveLength(0);
   });
 });
 

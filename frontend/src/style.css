@@ -372,3 +372,15 @@ button:hover {
   border-radius: 4px;
   font-size: 0.9rem;
 }
+
+.delete-btn {
+  padding: 3px 10px;
+  font-size: 0.8rem;
+  background: #e74c3c;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.delete-btn:hover {
+  background: #c0392b;
+}
