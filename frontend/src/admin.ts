@@ -200,6 +200,64 @@ document.getElementById('projectForm')!.addEventListener('submit', async (e) => 
   }
 });
 
+// ── Project card helpers ────────────────────────────────────────────────────
+
+function projectCardInnerHtml(project: Project): string {
+  const date = new Date(project.created_at + 'Z').toLocaleString();
+  const link = `${window.location.origin}/submit/${project.uuid}`;
+  const branchLabelsHtml =
+    project.branch_labels.length > 0
+      ? '<ul>' +
+        project.branch_labels
+          .map(
+            (bl) =>
+              `<li><span class="position">${bl.position}.</span> ${escapeHtml(bl.label)}</li>`,
+          )
+          .join('') +
+        '</ul>'
+      : `<p class="empty">${t('projects.no_branch_labels', lang)}</p>`;
+  const count = project.submission_count ?? 0;
+  const submissionWord =
+    count === 1 ? t('projects.submissions_singular', lang) : t('projects.submissions_plural', lang);
+  return `
+    <div class="card-header">
+      <h2>${escapeHtml(project.center_label)}</h2>
+      <span class="timestamp">${date}</span>
+      <div class="card-actions">
+        <button class="edit-btn project-edit-btn">${t('projects.edit', lang)}</button>
+        <button class="delete-btn project-delete-btn">${t('projects.delete_btn', lang)}</button>
+      </div>
+    </div>
+    <div class="branches">${branchLabelsHtml}</div>
+    <div class="link-row">
+      <a href="${link}" target="_blank" class="submit-link">${link}</a>
+      <button class="copy-btn" onclick="copyText('${escapeHtml(link)}')">${t('projects.copy', lang)}</button>
+    </div>
+    <div class="link-row" style="margin-top:6px">
+      <a href="/graph/${project.uuid}" target="_blank" class="graph-link">${t('projects.view_graph', lang)}</a>
+    </div>
+    <p class="count" style="margin-top:10px">${count} ${submissionWord}</p>
+    <button class="toggle-btn" data-project-id="${project.id}">${t('projects.show', lang)}</button>
+    <div class="submissions hidden" id="submissions-${project.id}"></div>
+  `;
+}
+
+function attachProjectCardHandlers(
+  card: HTMLElement,
+  project: Project,
+  container: HTMLElement,
+): void {
+  card.querySelector<HTMLButtonElement>('.project-edit-btn')?.addEventListener('click', () => {
+    showProjectEditForm(project, card, container);
+  });
+  card.querySelector<HTMLButtonElement>('.project-delete-btn')?.addEventListener('click', () => {
+    void deleteProjectHandler(project, card, container);
+  });
+  card.querySelector<HTMLButtonElement>('.toggle-btn')?.addEventListener('click', (e) => {
+    toggleSubmissions(e.target as HTMLButtonElement);
+  });
+}
+
 // ── Render projects ─────────────────────────────────────────────────────────
 
 function renderProjects(projects: Project[]): void {
@@ -214,52 +272,122 @@ function renderProjects(projects: Project[]): void {
   projects.forEach((project) => {
     const card = document.createElement('div');
     card.className = 'card';
-
-    const date = new Date(project.created_at + 'Z').toLocaleString();
-    const link = `${window.location.origin}/submit/${project.uuid}`;
-
-    const branchLabelsHtml =
-      project.branch_labels.length > 0
-        ? '<ul>' +
-          project.branch_labels
-            .map(
-              (bl) =>
-                `<li><span class="position">${bl.position}.</span> ${escapeHtml(bl.label)}</li>`,
-            )
-            .join('') +
-          '</ul>'
-        : `<p class="empty">${t('projects.no_branch_labels', lang)}</p>`;
-
-    const count = project.submission_count ?? 0;
-    const submissionWord =
-      count === 1
-        ? t('projects.submissions_singular', lang)
-        : t('projects.submissions_plural', lang);
-
-    card.innerHTML = `
-      <div class="card-header">
-        <h2>${escapeHtml(project.center_label)}</h2>
-        <span class="timestamp">${date}</span>
-      </div>
-      <div class="branches">${branchLabelsHtml}</div>
-      <div class="link-row">
-        <a href="${link}" target="_blank" class="submit-link">${link}</a>
-        <button class="copy-btn" onclick="copyText('${escapeHtml(link)}')">${t('projects.copy', lang)}</button>
-      </div>
-      <div class="link-row" style="margin-top:6px">
-        <a href="/graph/${project.uuid}" target="_blank" class="graph-link">${t('projects.view_graph', lang)}</a>
-      </div>
-      <p class="count" style="margin-top:10px">${count} ${submissionWord}</p>
-      <button class="toggle-btn" data-project-id="${project.id}">${t('projects.show', lang)}</button>
-      <div class="submissions hidden" id="submissions-${project.id}"></div>
-    `;
-
+    card.innerHTML = projectCardInnerHtml(project);
     container.appendChild(card);
+    attachProjectCardHandlers(card, project, container);
+  });
+}
+
+// ── Edit project ─────────────────────────────────────────────────────────────
+
+function showProjectEditForm(project: Project, card: HTMLElement, container: HTMLElement): void {
+  const branchLabelInputs = [1, 2, 3, 4, 5]
+    .map((pos) => {
+      const existing = project.branch_labels.find((bl) => bl.position === pos);
+      return `
+      <div class="edit-field">
+        <label>${t('create.branch', lang)} ${pos}</label>
+        <input type="text" class="edit-proj-branch-label" data-position="${pos}" value="${existing ? escapeHtml(existing.label) : ''}" />
+      </div>`;
+    })
+    .join('');
+
+  card.innerHTML = `
+    <form class="edit-form">
+      <div class="edit-field">
+        <label>${t('create.center_label', lang)}</label>
+        <input type="text" class="edit-proj-name" value="${escapeHtml(project.center_label)}" />
+      </div>
+      <div class="edit-field">
+        <label>${t('create.language', lang)}</label>
+        <select class="edit-proj-lang">
+          <option value="en" ${project.language === 'en' ? 'selected' : ''}>${t('create.language_en', lang)}</option>
+          <option value="fr" ${project.language === 'fr' ? 'selected' : ''}>${t('create.language_fr', lang)}</option>
+        </select>
+      </div>
+      <fieldset>
+        <legend>${t('create.branches_legend', lang)}</legend>
+        ${branchLabelInputs}
+      </fieldset>
+      <div class="edit-actions">
+        <button type="submit">${t('projects.edit_save', lang)}</button>
+        <button type="button" class="secondary-btn proj-cancel-btn">${t('projects.edit_cancel', lang)}</button>
+      </div>
+    </form>
+  `;
+
+  card.querySelector('.proj-cancel-btn')?.addEventListener('click', () => {
+    card.innerHTML = projectCardInnerHtml(project);
+    attachProjectCardHandlers(card, project, container);
   });
 
-  container.querySelectorAll<HTMLButtonElement>('.toggle-btn').forEach((btn) => {
-    btn.addEventListener('click', () => toggleSubmissions(btn));
+  card.querySelector<HTMLFormElement>('.edit-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const center_label = card.querySelector<HTMLInputElement>('.edit-proj-name')!.value.trim();
+    if (!center_label) {
+      alert(t('projects.edit_error', lang));
+      return;
+    }
+    const language = card.querySelector<HTMLSelectElement>('.edit-proj-lang')!.value;
+    const branch_labels = Array.from(
+      card.querySelectorAll<HTMLInputElement>('.edit-proj-branch-label'),
+    ).map((input) => input.value.trim());
+
+    try {
+      const res = await fetch(`/api/projects/${project.uuid}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Basic ${credentials}` },
+        body: JSON.stringify({ center_label, language, branch_labels }),
+      });
+      if (!res.ok) {
+        alert(t('projects.edit_error', lang));
+        return;
+      }
+      project.center_label = center_label;
+      project.language = language;
+      project.branch_labels = branch_labels
+        .map((label, i) => ({
+          id: project.branch_labels[i]?.id ?? 0,
+          project_id: project.id,
+          position: i + 1,
+          label,
+        }))
+        .filter((bl) => bl.label);
+      card.innerHTML = projectCardInnerHtml(project);
+      attachProjectCardHandlers(card, project, container);
+    } catch {
+      alert(t('projects.edit_error', lang));
+    }
   });
+}
+
+// ── Delete project ────────────────────────────────────────────────────────────
+
+async function deleteProjectHandler(
+  project: Project,
+  card: HTMLElement,
+  container: HTMLElement,
+): Promise<void> {
+  const count = project.submission_count ?? 0;
+  const word =
+    count === 1 ? t('projects.submissions_singular', lang) : t('projects.submissions_plural', lang);
+  if (!confirm(`${t('projects.delete_confirm', lang)}\n(${count} ${word})`)) return;
+  try {
+    const res = await fetch(`/api/projects/${project.uuid}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Basic ${credentials}` },
+    });
+    if (!res.ok) {
+      alert(t('projects.delete_error', lang));
+      return;
+    }
+    card.remove();
+    if (!container.querySelector('.card')) {
+      container.innerHTML = `<p class="empty">${t('projects.empty', lang)}</p>`;
+    }
+  } catch {
+    alert(t('projects.delete_error', lang));
+  }
 }
 
 // ── Toggle submissions ──────────────────────────────────────────────────────

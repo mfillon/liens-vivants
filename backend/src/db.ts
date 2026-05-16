@@ -225,6 +225,19 @@ const updateBranchText = db.prepare(
 const clearBranchMediaStmt = db.prepare(
   'UPDATE branches SET media_path = NULL, media_type = NULL WHERE id = ?',
 );
+const selectProjectById = db.prepare('SELECT * FROM projects WHERE id = ?');
+const deleteProjectById = db.prepare('DELETE FROM projects WHERE id = ?');
+const deleteBranchLabelsByProject = db.prepare(
+  'DELETE FROM project_branch_labels WHERE project_id = ?',
+);
+const deleteNodesByProject = db.prepare('DELETE FROM nodes WHERE project_id = ?');
+const deleteBranchesByProject = db.prepare(
+  'DELETE FROM branches WHERE node_id IN (SELECT id FROM nodes WHERE project_id = ?)',
+);
+const deleteConnectionsByProject = db.prepare('DELETE FROM connections WHERE project_id = ?');
+const updateProjectDetails = db.prepare(
+  'UPDATE projects SET center_label = ?, language = ? WHERE id = ?',
+);
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -272,6 +285,47 @@ export function getAllProjects(): Array<Project & { submission_count: number }> 
     branch_labels: selectBranchLabels.all(project.id) as unknown as BranchLabel[],
     submission_count: (selectNodeCountByProject.get(project.id) as { count: number }).count,
   }));
+}
+
+export function deleteProject(projectId: number): { mediaPaths: string[] } | null {
+  const row = selectProjectById.get(projectId) as ProjectRow | undefined;
+  if (!row) return null;
+  const nodes = selectNodesByProject.all(projectId) as unknown as NodeDbRow[];
+  const mediaPaths: string[] = [];
+  for (const node of nodes) {
+    (selectBranches.all(node.id) as unknown as Branch[])
+      .filter((b) => b.media_path)
+      .forEach((b) => mediaPaths.push(b.media_path as string));
+  }
+  deleteConnectionsByProject.run(projectId);
+  deleteBranchesByProject.run(projectId);
+  deleteNodesByProject.run(projectId);
+  deleteBranchLabelsByProject.run(projectId);
+  deleteProjectById.run(projectId);
+  return { mediaPaths };
+}
+
+export function updateProject(
+  projectId: number,
+  center_label?: string,
+  language?: string,
+  branch_labels?: string[],
+): boolean {
+  const row = selectProjectById.get(projectId) as ProjectRow | undefined;
+  if (!row) return false;
+  if (center_label !== undefined || language !== undefined) {
+    updateProjectDetails.run(center_label ?? row.center_label, language ?? row.language, projectId);
+  }
+  if (branch_labels !== undefined) {
+    deleteBranchLabelsByProject.run(projectId);
+    for (let i = 0; i < branch_labels.length; i++) {
+      const label = branch_labels[i];
+      if (label?.trim()) {
+        insertBranchLabel.run(projectId, i + 1, label.trim());
+      }
+    }
+  }
+  return true;
 }
 
 export function getNodeCountByProject(projectId: number): number {

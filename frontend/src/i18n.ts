@@ -45,6 +45,14 @@ const translations = {
     'projects.no_branch_labels': 'No branch labels defined',
     'projects.show': 'Show submissions',
     'projects.hide': 'Hide submissions',
+    'projects.edit': '✏️ Edit',
+    'projects.delete_btn': '🗑 Delete',
+    'projects.delete_confirm':
+      'Delete this project and all its submissions? This cannot be undone.',
+    'projects.delete_error': 'Failed to delete project.',
+    'projects.edit_save': 'Save',
+    'projects.edit_cancel': 'Cancel',
+    'projects.edit_error': 'Failed to save changes.',
     // Submissions
     'submissions.empty': 'No submissions yet.',
     'submissions.loading': 'Loading…',
@@ -135,6 +143,14 @@ const translations = {
     'projects.no_branch_labels': 'Aucune étiquette de branche',
     'projects.show': 'Voir les soumissions',
     'projects.hide': 'Masquer les soumissions',
+    'projects.edit': '✏️ Modifier',
+    'projects.delete_btn': '🗑 Supprimer',
+    'projects.delete_confirm':
+      'Supprimer ce projet et toutes ses soumissions\u00a0? Cette action est irréversible.',
+    'projects.delete_error': 'Impossible de supprimer le projet.',
+    'projects.edit_save': 'Enregistrer',
+    'projects.edit_cancel': 'Annuler',
+    'projects.edit_error': 'Impossible d\u2019enregistrer les modifications.',
     // Submissions
     'submissions.empty': 'Aucune soumission pour l\u2019instant.',
     'submissions.loading': 'Chargement…',

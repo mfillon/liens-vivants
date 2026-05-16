@@ -5,6 +5,7 @@ import {
   createNode,
   createProject,
   deleteNode,
+  deleteProject,
   getAllNodes,
   getAllProjects,
   getBranchById,
@@ -14,6 +15,7 @@ import {
   recomputeAllConnections,
   saveBranchMedia,
   updateNode,
+  updateProject,
 } from '@/db';
 
 afterEach(() => {
@@ -66,6 +68,73 @@ describe('createProject / getProjectByUUID', () => {
     const { uuid } = createProject('Q', [], 'fr');
     const project = getProjectByUUID(uuid);
     expect(project!.language).toBe('fr');
+  });
+});
+
+describe('deleteProject', () => {
+  it('returns null for unknown id', () => {
+    expect(deleteProject(999999)).toBeNull();
+  });
+
+  it('removes the project from getAllProjects', () => {
+    const { id } = createProject('Q', []);
+    deleteProject(id);
+    expect(getAllProjects().find((p) => p.id === id)).toBeUndefined();
+  });
+
+  it('cascades nodes, branches, and connections', () => {
+    const { id: projectId } = createProject('Q', []);
+    const { nodeId, branchIds } = createNode(projectId, 'Alice', ['ocean climate']);
+    createNode(projectId, 'Bob', ['ocean forest']);
+    expect(getConnectionsByProject(projectId)).toHaveLength(1);
+
+    deleteProject(projectId);
+
+    expect(getAllNodes().find((n) => n.id === nodeId)).toBeUndefined();
+    expect(getBranchById(branchIds[0].id)).toBeUndefined();
+    expect(getConnectionsByProject(projectId)).toHaveLength(0);
+  });
+
+  it('returns media paths of deleted branches', () => {
+    const { id: projectId } = createProject('Q', []);
+    const { branchIds } = createNode(projectId, 'Alice', ['text']);
+    saveBranchMedia(branchIds[0].id, 'photo.jpg', 'image/jpeg');
+    const result = deleteProject(projectId);
+    expect(result?.mediaPaths).toEqual(['photo.jpg']);
+  });
+});
+
+describe('updateProject', () => {
+  it('returns false for unknown id', () => {
+    expect(updateProject(999999, 'New name')).toBe(false);
+  });
+
+  it('updates center_label', () => {
+    const { id } = createProject('Old question', []);
+    updateProject(id, 'New question');
+    expect(getAllProjects().find((p) => p.id === id)!.center_label).toBe('New question');
+  });
+
+  it('updates language', () => {
+    const { id } = createProject('Q', [], 'en');
+    updateProject(id, undefined, 'fr');
+    expect(getAllProjects().find((p) => p.id === id)!.language).toBe('fr');
+  });
+
+  it('replaces branch labels', () => {
+    const { id, uuid } = createProject('Q', ['Old A', 'Old B']);
+    updateProject(id, undefined, undefined, ['New A', 'New B', 'New C']);
+    const project = getProjectByUUID(uuid);
+    expect(project!.branch_labels).toHaveLength(3);
+    expect(project!.branch_labels[0].label).toBe('New A');
+  });
+
+  it('skips blank branch labels', () => {
+    const { id, uuid } = createProject('Q', ['A', 'B']);
+    updateProject(id, undefined, undefined, ['Keep', '', '  ']);
+    const project = getProjectByUUID(uuid);
+    expect(project!.branch_labels).toHaveLength(1);
+    expect(project!.branch_labels[0].label).toBe('Keep');
   });
 });
 
