@@ -144,6 +144,7 @@ Target: Railway (Docker-based). Full hardening before first deploy.
 - [x] Remove `WWW-Authenticate` header from 401s — prevents browser native auth dialog
 - [x] GitHub Actions CI
 - [x] Dependabot (weekly, grouped npm + GitHub Actions updates)
+- [x] Dockerfile: install pnpm via npm (Corepack removed in Node 26), version read from `packageManager`
 - [ ] Deploy on Railway (persistent volume, env vars, health check)
 
 ---
