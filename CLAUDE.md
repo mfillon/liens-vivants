@@ -8,7 +8,7 @@ Scripts are defined in the root `package.json` and delegate to sub-packages. Run
 
 To run a single test file: `pnpm --dir backend exec vitest run tests/db.test.ts`
 
-**After every change** (including unplanned ones): run `pnpm typecheck && pnpm lint && pnpm format && pnpm test`, then update `.claude/PLAN.md`.
+**After every change** (including unplanned ones): run `pnpm typecheck && pnpm lint && pnpm format && pnpm test`. In `.claude/PLAN.md`, only tick off items already listed — never add new ones.
 
 ## Architecture
 
@@ -66,4 +66,4 @@ Copy `.env.example` to `.env` at the root. Required variables: `ADMIN_USER`, `AD
 
 - Commit style: Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`)
 - Branch naming: `feat/`, `fix/`, `chore/`
-- At the end of each work session, update `.claude/PLAN.md` **and** `README.md` together — both must stay in sync.
+- At the end of each work session, tick off completed `.claude/PLAN.md` items (no new items) and keep `README.md` in sync.
