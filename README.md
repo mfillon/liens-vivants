@@ -132,7 +132,7 @@ liens-vivants/
 │   ├── PLAN.md            # Incremental implementation roadmap
 │   └── TECHNICAL.md       # Production-readiness phases
 ├── .github/
-│   ├── workflows/ci.yml   # CI: lint, format, typecheck, test, Docker build
+│   ├── workflows/ci.yml   # CI: lint, format, typecheck, test, Docker build (main only)
 │   └── dependabot.yml     # Weekly grouped npm + GitHub Actions updates
 ├── package.json           # Root: dev/build/start scripts
 ├── pnpm-workspace.yaml
