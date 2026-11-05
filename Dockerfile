@@ -1,9 +1,14 @@
+# Stage 0: Base — Node + pnpm (Corepack is no longer bundled since Node 26).
+# The pnpm version is read from package.json "packageManager" (single source of truth).
+FROM node:lts-alpine AS base
+
+WORKDIR /app
+
+COPY package.json ./
+RUN npm install -g "pnpm@$(node -p "require('./package.json').packageManager.replace(/^pnpm@|\+.*$/g, '')")"
+
 # Stage 1: Build
-FROM node:lts-alpine AS builder
-
-RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
-
-WORKDIR /build
+FROM base AS builder
 
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY backend/package.json ./backend/
@@ -20,11 +25,7 @@ COPY frontend/tsconfig.json frontend/vite.config.ts ./frontend/
 RUN pnpm build
 
 # Stage 2: Runtime
-FROM node:lts-alpine AS runtime
-
-RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
-
-WORKDIR /app
+FROM base AS runtime
 
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY backend/package.json ./backend/
@@ -32,8 +33,8 @@ COPY frontend/package.json ./frontend/
 
 RUN pnpm install --frozen-lockfile --prod
 
-COPY --from=builder /build/backend/dist ./backend/dist
-COPY --from=builder /build/frontend/dist ./frontend/dist
+COPY --from=builder /app/backend/dist ./backend/dist
+COPY --from=builder /app/frontend/dist ./frontend/dist
 
 RUN mkdir -p /data/uploads
 
