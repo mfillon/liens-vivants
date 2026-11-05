@@ -131,6 +131,9 @@ liens-vivants/
 ├── .claude/
 │   ├── PLAN.md            # Incremental implementation roadmap
 │   └── TECHNICAL.md       # Production-readiness phases
+├── .github/
+│   ├── workflows/ci.yml   # CI: lint, format, typecheck, test, Docker build
+│   └── dependabot.yml     # Weekly grouped npm + GitHub Actions updates
 ├── package.json           # Root: dev/build/start scripts
 ├── pnpm-workspace.yaml
 ├── .env                   # ADMIN_USER, ADMIN_PASS, PORT (git-ignored)
