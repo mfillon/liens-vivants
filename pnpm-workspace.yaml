@@ -3,3 +3,5 @@ packages:
   - 'backend'
 allowBuilds:
   esbuild: false
+minimumReleaseAgeExclude:
+  - dotenv@18.0.10
